@@ -1,0 +1,8 @@
+{
+  "name": "maboule",
+  "private": true,
+  "workspaces": [
+    "server",
+    "client"
+  ]
+}
