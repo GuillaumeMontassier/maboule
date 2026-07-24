@@ -4,6 +4,43 @@ import type { Boulodrome } from "../models/boulodrome";
 import { boulodromes } from "./schema";
 import type * as schema from "./schema";
 
+export interface BoulodromeRow {
+  id: string;
+  name: string;
+  street: string;
+  postalCode: string;
+  city: string;
+  inseeCode: string | null;
+  longitude: number;
+  latitude: number;
+  source: string;
+  sourceId: string;
+  lastSyncedAt: Date;
+}
+
+export async function findAllBoulodromes(
+  db: NodePgDatabase<typeof schema>,
+): Promise<BoulodromeRow[]> {
+  return db
+    .select({
+      id: boulodromes.id,
+      name: boulodromes.name,
+      street: boulodromes.street,
+      postalCode: boulodromes.postalCode,
+      city: boulodromes.city,
+      inseeCode: boulodromes.inseeCode,
+      // La colonne est stockee en `geography` : on la reprojette en
+      // `geometry` pour en extraire lon/lat via ST_X/ST_Y, que Drizzle ne
+      // modelise pas nativement (cf. commentaire dans schema.ts).
+      longitude: sql<number>`ST_X(${boulodromes.coordinates}::geometry)`,
+      latitude: sql<number>`ST_Y(${boulodromes.coordinates}::geometry)`,
+      source: boulodromes.source,
+      sourceId: boulodromes.sourceId,
+      lastSyncedAt: boulodromes.lastSyncedAt,
+    })
+    .from(boulodromes);
+}
+
 export async function upsertBoulodromes(
   db: NodePgDatabase<typeof schema>,
   items: Boulodrome[],
