@@ -4,15 +4,15 @@
   "version": "1.0.0",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch",
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc --watch -p tsconfig.build.json",
     "start": "node dist/index.js",
-    "migrate:create": "node-pg-migrate create -j sql --",
-    "migrate:up": "dotenv -e .env -- node-pg-migrate up -j sql",
-    "migrate:down": "dotenv -e .env -- node-pg-migrate down -j sql",
+    "db:generate": "dotenv -e .env -- drizzle-kit generate",
+    "db:migrate": "dotenv -e .env -- drizzle-kit migrate",
     "ingest": "dotenv -e .env -- tsx src/ingestion/run.ts"
   },
   "dependencies": {
+    "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
     "pg": "^8.22.0"
   },
@@ -21,7 +21,7 @@
     "@types/node": "^26.1.1",
     "@types/pg": "^8.20.0",
     "dotenv-cli": "^11.0.0",
-    "node-pg-migrate": "^9.0.0",
+    "drizzle-kit": "^0.31.10",
     "tsx": "^4.23.1",
     "typescript": "^7.0.2"
   }
