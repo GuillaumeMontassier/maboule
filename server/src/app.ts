@@ -6,11 +6,13 @@ import { toBoulodromeFeatureCollection } from "./geojson/boulodromes";
 
 export const app = express();
 
-// Le front et le back seront deployes sur des domaines differents (voir
-// roadmap Phase 1 : front sur Vercel/Netlify, back sur Railway/Render), donc
-// CORS sera necessaire meme en prod. Ouvert a toutes origines pour l'instant :
-// endpoint public en lecture seule, sans authentification ni donnee sensible.
-app.use(cors());
+// Le front (Vercel) et le back (Railway) sont sur des domaines differents,
+// donc CORS est necessaire meme en prod. CORS_ORIGIN restreint aux domaines
+// listes une fois connus ; sans cette variable (dev local), on reste ouvert
+// a toutes origines - endpoint public en lecture seule, sans authentification
+// ni donnee sensible.
+const corsOrigin = process.env.CORS_ORIGIN?.split(",");
+app.use(cors(corsOrigin ? { origin: corsOrigin } : undefined));
 
 app.get("/api/boulodromes", async (_req, res) => {
   try {
