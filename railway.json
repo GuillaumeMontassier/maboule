@@ -5,6 +5,6 @@
     "buildCommand": "npm install && npm run build --workspace=server"
   },
   "deploy": {
-    "startCommand": "npm run db:migrate --workspace=server && npm run start --workspace=server"
+    "startCommand": "npm run migrate:prod --workspace=server && npm run start --workspace=server"
   }
 }
