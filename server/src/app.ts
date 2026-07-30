@@ -14,6 +14,10 @@ export const app = express();
 const corsOrigin = process.env.CORS_ORIGIN?.split(",");
 app.use(cors(corsOrigin ? { origin: corsOrigin } : undefined));
 
+app.get("/health", (_req, res) => {
+  res.status(200).send("ok");
+});
+
 app.get("/api/boulodromes", async (_req, res) => {
   try {
     const rows = await findAllBoulodromes(db);
