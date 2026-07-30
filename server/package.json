@@ -12,6 +12,7 @@
     "migrate:prod": "node dist/db/migrate.js",
     "start:prod": "npm run migrate:prod && npm run start",
     "ingest": "dotenv -e .env -- tsx src/ingestion/run.ts",
+    "ingest:prod": "node dist/ingestion/run.js",
     "test": "vitest run --exclude \"**/*.integration.test.ts\"",
     "test:integration": "dotenv -e .env -- vitest run integration.test.ts"
   },
