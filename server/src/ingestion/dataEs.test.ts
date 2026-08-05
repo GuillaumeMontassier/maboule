@@ -12,6 +12,7 @@ describe("toBoulodrome", () => {
       installation_numero: "I751130012",
       nature: "Découvert",
       aire_nature_sol: "Stabilisé/cendrée",
+      coordonnees: { lon: 2.368248, lat: 48.820839 },
     };
     const installation: DataEsInstallationRecord = {
       numero: "I751130012",
@@ -20,7 +21,9 @@ describe("toBoulodrome", () => {
       cp: "75013",
       commune: "Paris 13e Arrondissement",
       insee: "75113",
-      coordonnees: { lon: 2.368248, lat: 48.820839 },
+      // Volontairement different de equipement.coordonnees : un site peut
+      // porter plusieurs terrains, la position doit venir de l'equipement.
+      coordonnees: { lon: 2.4, lat: 48.9 },
     };
 
     const boulodrome = toBoulodrome(equipement, installation);

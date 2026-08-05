@@ -12,6 +12,10 @@ export interface DataEsEquipementRecord {
   nature: string | null;
   // Nature du sol (ex. "Stabilise/cendree", "Sable"...).
   aire_nature_sol: string | null;
+  // Position propre a cet equipement (un site peut porter plusieurs
+  // terrains a des emplacements distincts) — a preferer aux coordonnees,
+  // plus grossieres, du site porte par DataEsInstallationRecord.
+  coordonnees: { lon: number; lat: number };
 }
 
 export interface DataEsInstallationRecord {
@@ -108,8 +112,8 @@ export function toBoulodrome(
     installation.insee,
   );
   const coordinates = new GeoCoordinates(
-    installation.coordonnees.lat,
-    installation.coordonnees.lon,
+    equipement.coordonnees.lat,
+    equipement.coordonnees.lon,
   );
 
   return new Boulodrome(
