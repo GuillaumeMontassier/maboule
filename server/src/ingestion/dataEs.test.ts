@@ -10,9 +10,12 @@ describe("toBoulodrome", () => {
       type: "Terrain de petanque",
       famille: "Boulodrome",
       installation_numero: "I751130012",
+      nature: "Découvert",
+      aire_nature_sol: "Stabilisé/cendrée",
     };
     const installation: DataEsInstallationRecord = {
       numero: "I751130012",
+      nom: "SQUARE DE TEST",
       adresse: "12 rue de Paris",
       cp: "75013",
       commune: "Paris 13e Arrondissement",
@@ -38,5 +41,8 @@ describe("toBoulodrome", () => {
       latitude: 48.820839,
       longitude: 2.368248,
     });
+    expect(boulodrome.siteName).toBe("SQUARE DE TEST");
+    expect(boulodrome.equipmentType).toBe("Découvert");
+    expect(boulodrome.groundType).toBe("Stabilisé/cendrée");
   });
 });

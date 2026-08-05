@@ -7,6 +7,9 @@ export interface BoulodromeProperties {
   postalCode: string;
   city: string;
   inseeCode: string | null;
+  siteName: string | null;
+  equipmentType: string | null;
+  groundType: string | null;
   source: string;
   lastSyncedAt: string;
 }

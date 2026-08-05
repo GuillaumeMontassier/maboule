@@ -23,9 +23,23 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
           <Marker key={feature.properties.id} position={[latitude, longitude]}>
             <Popup>
               <strong>{feature.properties.name}</strong>
+              {feature.properties.siteName && feature.properties.siteName !== feature.properties.name && (
+                <>
+                  <br />
+                  {feature.properties.siteName}
+                </>
+              )}
               <br />
               {feature.properties.street}, {feature.properties.postalCode}{" "}
               {feature.properties.city}
+              {(feature.properties.equipmentType || feature.properties.groundType) && (
+                <>
+                  <br />
+                  {[feature.properties.equipmentType, feature.properties.groundType]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </>
+              )}
             </Popup>
           </Marker>
         );

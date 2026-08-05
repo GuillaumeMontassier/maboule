@@ -8,6 +8,9 @@ export interface BoulodromeProperties {
   postalCode: string;
   city: string;
   inseeCode: string | null;
+  siteName: string | null;
+  equipmentType: string | null;
+  groundType: string | null;
   source: string;
   lastSyncedAt: string;
 }
@@ -39,6 +42,9 @@ function toBoulodromeFeature(row: BoulodromeRow): BoulodromeFeature {
       postalCode: row.postalCode,
       city: row.city,
       inseeCode: row.inseeCode,
+      siteName: row.siteName,
+      equipmentType: row.equipmentType,
+      groundType: row.groundType,
       source: row.source,
       lastSyncedAt: row.lastSyncedAt.toISOString(),
     },

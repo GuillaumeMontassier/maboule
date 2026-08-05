@@ -11,7 +11,14 @@ import { boulodromes } from "./schema";
 const TEST_ID = "test:integration-boulodrome";
 
 function buildTestBoulodrome(
-  overrides: Partial<{ name: string; latitude: number; longitude: number }> = {},
+  overrides: Partial<{
+    name: string;
+    latitude: number;
+    longitude: number;
+    siteName: string | null;
+    equipmentType: string | null;
+    groundType: string | null;
+  }> = {},
 ): Boulodrome {
   return new Boulodrome(
     TEST_ID,
@@ -21,6 +28,9 @@ function buildTestBoulodrome(
     "manual",
     "integration-test",
     new Date("2026-07-24T10:00:00.000Z"),
+    overrides.siteName ?? "Square de test",
+    overrides.equipmentType ?? "Découvert",
+    overrides.groundType ?? "Stabilisé/cendrée",
   );
 }
 
@@ -41,6 +51,9 @@ describe("boulodromesRepository (integration)", () => {
     // sur les valeurs d'origine (a la precision flottante pres).
     expect(row?.longitude).toBeCloseTo(2.3522, 6);
     expect(row?.latitude).toBeCloseTo(48.8566, 6);
+    expect(row?.siteName).toBe("Square de test");
+    expect(row?.equipmentType).toBe("Découvert");
+    expect(row?.groundType).toBe("Stabilisé/cendrée");
   });
 
   it("met à jour la ligne existante plutôt que d'en créer une nouvelle (upsert)", async () => {

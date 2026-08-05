@@ -13,6 +13,9 @@ export interface BoulodromeRow {
   inseeCode: string | null;
   longitude: number;
   latitude: number;
+  siteName: string | null;
+  equipmentType: string | null;
+  groundType: string | null;
   source: string;
   sourceId: string;
   lastSyncedAt: Date;
@@ -34,6 +37,9 @@ export async function findAllBoulodromes(
       // modelise pas nativement (cf. commentaire dans schema.ts).
       longitude: sql<number>`ST_X(${boulodromes.coordinates}::geometry)`,
       latitude: sql<number>`ST_Y(${boulodromes.coordinates}::geometry)`,
+      siteName: boulodromes.siteName,
+      equipmentType: boulodromes.equipmentType,
+      groundType: boulodromes.groundType,
       source: boulodromes.source,
       sourceId: boulodromes.sourceId,
       lastSyncedAt: boulodromes.lastSyncedAt,
@@ -61,6 +67,9 @@ export async function upsertBoulodromes(
         city: item.address.city,
         inseeCode: item.address.inseeCode ?? null,
         coordinates,
+        siteName: item.siteName,
+        equipmentType: item.equipmentType,
+        groundType: item.groundType,
         source: item.source,
         sourceId: item.sourceId,
         lastSyncedAt: item.lastSyncedAt,
@@ -74,6 +83,9 @@ export async function upsertBoulodromes(
           city: item.address.city,
           inseeCode: item.address.inseeCode ?? null,
           coordinates,
+          siteName: item.siteName,
+          equipmentType: item.equipmentType,
+          groundType: item.groundType,
           lastSyncedAt: item.lastSyncedAt,
         },
       });

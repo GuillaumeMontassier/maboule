@@ -25,5 +25,14 @@ export class Boulodrome {
     public source: BoulodromeSource,
     public sourceId: string,
     public lastSyncedAt: Date,
+    // Nom du site abritant l'equipement (ex. "Jardin du port de l'Arsenal"),
+    // distinct de `name` qui designe le terrain lui-meme (ex. "Grand terrain
+    // de petanque") — les deux peuvent partager la meme valeur mais viennent
+    // de deux enregistrements source differents.
+    public siteName: string | null = null,
+    // "Decouvert" / "Couvert" cote Data ES.
+    public equipmentType: string | null = null,
+    // Ex. "Stabilise/cendree", "Sable", "Beton"...
+    public groundType: string | null = null,
   ) {}
 }

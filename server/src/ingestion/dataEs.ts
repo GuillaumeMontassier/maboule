@@ -8,10 +8,17 @@ export interface DataEsEquipementRecord {
   type: string;
   famille: string;
   installation_numero: string;
+  // "Decouvert" / "Couvert".
+  nature: string | null;
+  // Nature du sol (ex. "Stabilise/cendree", "Sable"...).
+  aire_nature_sol: string | null;
 }
 
 export interface DataEsInstallationRecord {
   numero: string;
+  // Nom du site (ex. "Jardin du port de l'Arsenal"), distinct du nom de
+  // l'equipement porte par DataEsEquipementRecord.nom.
+  nom: string;
   adresse: string;
   cp: string;
   commune: string;
@@ -113,5 +120,8 @@ export function toBoulodrome(
     "data-es",
     equipement.numero,
     new Date(),
+    installation.nom,
+    equipement.nature,
+    equipement.aire_nature_sol,
   );
 }
