@@ -12,6 +12,7 @@ describe("toBoulodrome", () => {
       installation_numero: "I751130012",
       nature: "Découvert",
       aire_nature_sol: "Stabilisé/cendrée",
+      acces_libre: true,
       coordonnees: { lon: 2.368248, lat: 48.820839 },
     };
     const installation: DataEsInstallationRecord = {
@@ -47,5 +48,6 @@ describe("toBoulodrome", () => {
     expect(boulodrome.siteName).toBe("SQUARE DE TEST");
     expect(boulodrome.equipmentType).toBe("Découvert");
     expect(boulodrome.groundType).toBe("Stabilisé/cendrée");
+    expect(boulodrome.freeAccess).toBe(true);
   });
 });

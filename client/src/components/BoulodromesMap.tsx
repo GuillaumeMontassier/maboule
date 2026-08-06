@@ -40,6 +40,14 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
                     .join(" · ")}
                 </>
               )}
+              {feature.properties.freeAccess !== null && (
+                <>
+                  <br />
+                  <span className={`access-badge ${feature.properties.freeAccess ? "access-badge--free" : "access-badge--restricted"}`}>
+                    {feature.properties.freeAccess ? "Accès libre" : "Accès payant / restreint"}
+                  </span>
+                </>
+              )}
             </Popup>
           </Marker>
         );

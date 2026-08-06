@@ -11,6 +11,7 @@ export interface BoulodromeProperties {
   siteName: string | null;
   equipmentType: string | null;
   groundType: string | null;
+  freeAccess: boolean | null;
   source: string;
   lastSyncedAt: string;
 }
@@ -45,6 +46,7 @@ function toBoulodromeFeature(row: BoulodromeRow): BoulodromeFeature {
       siteName: row.siteName,
       equipmentType: row.equipmentType,
       groundType: row.groundType,
+      freeAccess: row.freeAccess,
       source: row.source,
       lastSyncedAt: row.lastSyncedAt.toISOString(),
     },

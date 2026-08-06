@@ -25,6 +25,7 @@ const sampleCollection: BoulodromesFeatureCollection = {
         siteName: 'SQUARE DE TEST',
         equipmentType: 'Découvert',
         groundType: 'Stabilisé/cendrée',
+        freeAccess: true,
         source: 'data-es',
         lastSyncedAt: '2026-07-24T10:00:00.000Z',
       },

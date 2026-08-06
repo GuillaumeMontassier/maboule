@@ -15,3 +15,22 @@
 .status-error {
   color: #b91c1c;
 }
+
+.access-badge {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.85em;
+  font-weight: 600;
+}
+
+.access-badge--free {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.access-badge--restricted {
+  background: #fef3c7;
+  color: #92400e;
+}

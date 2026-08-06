@@ -18,6 +18,7 @@ function buildTestBoulodrome(
     siteName: string | null;
     equipmentType: string | null;
     groundType: string | null;
+    freeAccess: boolean | null;
   }> = {},
 ): Boulodrome {
   return new Boulodrome(
@@ -31,6 +32,7 @@ function buildTestBoulodrome(
     overrides.siteName ?? "Square de test",
     overrides.equipmentType ?? "Découvert",
     overrides.groundType ?? "Stabilisé/cendrée",
+    overrides.freeAccess ?? true,
   );
 }
 
@@ -54,6 +56,7 @@ describe("boulodromesRepository (integration)", () => {
     expect(row?.siteName).toBe("Square de test");
     expect(row?.equipmentType).toBe("Découvert");
     expect(row?.groundType).toBe("Stabilisé/cendrée");
+    expect(row?.freeAccess).toBe(true);
   });
 
   it("met à jour la ligne existante plutôt que d'en créer une nouvelle (upsert)", async () => {

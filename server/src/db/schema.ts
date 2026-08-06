@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { check, customType, index, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
+import { boolean, check, customType, index, pgTable, text, timestamp, unique } from "drizzle-orm/pg-core";
 
 // Drizzle n'a pas de type PostGIS natif : customType nous laisse declarer
 // une colonne dont le type SQL est ecrit a la main. On garde `geography`
@@ -30,6 +30,7 @@ export const boulodromes = pgTable(
     siteName: text("site_name"),
     equipmentType: text("equipment_type"),
     groundType: text("ground_type"),
+    freeAccess: boolean("free_access"),
     source: text("source").notNull(),
     sourceId: text("source_id").notNull(),
     lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }).notNull(),

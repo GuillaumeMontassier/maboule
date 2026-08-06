@@ -10,6 +10,7 @@ export interface BoulodromeProperties {
   siteName: string | null;
   equipmentType: string | null;
   groundType: string | null;
+  freeAccess: boolean | null;
   source: string;
   lastSyncedAt: string;
 }

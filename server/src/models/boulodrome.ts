@@ -34,5 +34,8 @@ export class Boulodrome {
     public equipmentType: string | null = null,
     // Ex. "Stabilise/cendree", "Sable", "Beton"...
     public groundType: string | null = null,
+    // "acces_libre" cote Data ES : accessible a tous en permanence (non
+    // clos), sans reservation ni encadrement necessaire.
+    public freeAccess: boolean | null = null,
   ) {}
 }

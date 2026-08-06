@@ -12,6 +12,9 @@ export interface DataEsEquipementRecord {
   nature: string | null;
   // Nature du sol (ex. "Stabilise/cendree", "Sable"...).
   aire_nature_sol: string | null;
+  // Accessible a tous, en permanence (non clos), sans reservation ni
+  // encadrement necessaire.
+  acces_libre: boolean | null;
   // Position propre a cet equipement (un site peut porter plusieurs
   // terrains a des emplacements distincts) — a preferer aux coordonnees,
   // plus grossieres, du site porte par DataEsInstallationRecord.
@@ -127,5 +130,6 @@ export function toBoulodrome(
     installation.nom,
     equipement.nature,
     equipement.aire_nature_sol,
+    equipement.acces_libre,
   );
 }

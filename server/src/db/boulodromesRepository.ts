@@ -16,6 +16,7 @@ export interface BoulodromeRow {
   siteName: string | null;
   equipmentType: string | null;
   groundType: string | null;
+  freeAccess: boolean | null;
   source: string;
   sourceId: string;
   lastSyncedAt: Date;
@@ -40,6 +41,7 @@ export async function findAllBoulodromes(
       siteName: boulodromes.siteName,
       equipmentType: boulodromes.equipmentType,
       groundType: boulodromes.groundType,
+      freeAccess: boulodromes.freeAccess,
       source: boulodromes.source,
       sourceId: boulodromes.sourceId,
       lastSyncedAt: boulodromes.lastSyncedAt,
@@ -70,6 +72,7 @@ export async function upsertBoulodromes(
         siteName: item.siteName,
         equipmentType: item.equipmentType,
         groundType: item.groundType,
+        freeAccess: item.freeAccess,
         source: item.source,
         sourceId: item.sourceId,
         lastSyncedAt: item.lastSyncedAt,
@@ -86,6 +89,7 @@ export async function upsertBoulodromes(
           siteName: item.siteName,
           equipmentType: item.equipmentType,
           groundType: item.groundType,
+          freeAccess: item.freeAccess,
           lastSyncedAt: item.lastSyncedAt,
         },
       });

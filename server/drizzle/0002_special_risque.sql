@@ -1,0 +1,1 @@
+ALTER TABLE "boulodromes" ADD COLUMN "free_access" boolean;
