@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 import { db } from "./db/client";
 import { findAllBoulodromes } from "./db/boulodromesRepository";
+import type { BoundingBox } from "./db/boulodromesRepository";
 import { toBoulodromeFeatureCollection } from "./geojson/boulodromes";
 
 export const app = express();
@@ -40,6 +41,18 @@ function parseBooleanParam(value: unknown): boolean | undefined {
   return undefined;
 }
 
+// `?bbox=west,south,east,north` (WGS84, meme ordre que le bbox GeoJSON).
+// Mal forme (mauvais nombre de valeurs, NaN, rectangle degenere) -> pas de
+// filtre, meme choix "tolerant" que les autres parametres ci-dessus.
+function parseBoundingBoxParam(value: unknown): BoundingBox | undefined {
+  if (typeof value !== "string") return undefined;
+  const parts = value.split(",").map(Number);
+  if (parts.length !== 4 || parts.some((n) => Number.isNaN(n))) return undefined;
+  const [west, south, east, north] = parts;
+  if (west >= east || south >= north) return undefined;
+  return { west, south, east, north };
+}
+
 app.get("/api/boulodromes", async (req, res) => {
   try {
     // `q` : recherche libre par nom (equipement/site) ou adresse
@@ -48,11 +61,13 @@ app.get("/api/boulodromes", async (req, res) => {
     const groundTypes = parseListParam(req.query.groundType);
     const equipmentTypes = parseListParam(req.query.equipmentType);
     const freeAccess = parseBooleanParam(req.query.freeAccess);
+    const boundingBox = parseBoundingBoxParam(req.query.bbox);
     const rows = await findAllBoulodromes(db, {
       ...(q ? { search: q } : {}),
       ...(groundTypes ? { groundTypes } : {}),
       ...(equipmentTypes ? { equipmentTypes } : {}),
       ...(freeAccess !== undefined ? { freeAccess } : {}),
+      ...(boundingBox ? { boundingBox } : {}),
     });
     res.json(toBoulodromeFeatureCollection(rows));
   } catch (error) {

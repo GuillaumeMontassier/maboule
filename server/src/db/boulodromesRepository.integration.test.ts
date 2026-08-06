@@ -279,3 +279,41 @@ describe("findAllBoulodromes (filtre accès libre)", () => {
     expect(ids).toContain(RESTREINT_ID);
   });
 });
+
+describe("findAllBoulodromes (filtre bounding box)", () => {
+  const PARIS_ID = "test:bbox-paris";
+  const MARSEILLE_ID = "test:bbox-marseille";
+
+  afterEach(async () => {
+    await db.delete(boulodromes).where(eq(boulodromes.id, PARIS_ID));
+    await db.delete(boulodromes).where(eq(boulodromes.id, MARSEILLE_ID));
+  });
+
+  it("filtre les boulodromes dont les coordonnées tombent dans le rectangle", async () => {
+    await upsertBoulodromes(db, [
+      buildTestBoulodrome({ id: PARIS_ID, sourceId: PARIS_ID, latitude: 48.86, longitude: 2.35 }),
+      buildTestBoulodrome({ id: MARSEILLE_ID, sourceId: MARSEILLE_ID, latitude: 43.3, longitude: 5.37 }),
+    ]);
+
+    const rows = await findAllBoulodromes(db, {
+      boundingBox: { west: 2.2, south: 48.8, east: 2.5, north: 48.9 },
+    });
+    const ids = rows.map((r) => r.id);
+
+    expect(ids).toContain(PARIS_ID);
+    expect(ids).not.toContain(MARSEILLE_ID);
+  });
+
+  it("ne filtre pas quand `boundingBox` est absent", async () => {
+    await upsertBoulodromes(db, [
+      buildTestBoulodrome({ id: PARIS_ID, sourceId: PARIS_ID, latitude: 48.86, longitude: 2.35 }),
+      buildTestBoulodrome({ id: MARSEILLE_ID, sourceId: MARSEILLE_ID, latitude: 43.3, longitude: 5.37 }),
+    ]);
+
+    const rows = await findAllBoulodromes(db);
+    const ids = rows.map((r) => r.id);
+
+    expect(ids).toContain(PARIS_ID);
+    expect(ids).toContain(MARSEILLE_ID);
+  });
+});

@@ -34,6 +34,17 @@ export interface FindAllBoulodromesOptions {
   equipmentTypes?: string[];
   // Filtre exact sur l'accès libre/payant (`acces_libre` cote Data ES).
   freeAccess?: boolean;
+  // Restreint aux boulodromes dont les coordonnees tombent dans ce
+  // rectangle (ex. viewport de la carte), meme convention que le bbox
+  // GeoJSON : [west, south, east, north] en WGS84 (SRID 4326).
+  boundingBox?: BoundingBox;
+}
+
+export interface BoundingBox {
+  west: number;
+  south: number;
+  east: number;
+  north: number;
 }
 
 export async function findAllBoulodromes(
@@ -87,6 +98,17 @@ export async function findAllBoulodromes(
 
   if (options.freeAccess !== undefined) {
     conditions.push(eq(boulodromes.freeAccess, options.freeAccess));
+  }
+
+  if (options.boundingBox) {
+    const { west, south, east, north } = options.boundingBox;
+    // `&&` = operateur de recouvrement de bounding box PostGIS, accelere
+    // par l'index GiST sur `coordinates` (cf. schema.ts) - suffisant pour
+    // un point (sa "bbox" est lui-meme), pas besoin de ST_Within/Contains
+    // plus couteux ici.
+    conditions.push(
+      sql`${boulodromes.coordinates} && ST_MakeEnvelope(${west}, ${south}, ${east}, ${north}, 4326)::geography`,
+    );
   }
 
   if (conditions.length === 0) {
