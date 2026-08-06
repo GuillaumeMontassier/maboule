@@ -51,4 +51,30 @@ describe("fetchBoulodromes", () => {
 
     await expect(fetchBoulodromes()).rejects.toThrow("500");
   });
+
+  it("n'ajoute pas de paramètre quand aucun filtre n'est fourni", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(sampleCollection),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchBoulodromes();
+
+    expect(fetchMock).toHaveBeenCalledWith("http://localhost:3000/api/boulodromes");
+  });
+
+  it("ajoute un paramètre groundType par valeur sélectionnée", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(sampleCollection),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchBoulodromes({ groundTypes: ["Sable", "Stabilisé/cendrée"] });
+
+    const calledUrl = fetchMock.mock.calls[0][0] as string;
+    const params = new URL(calledUrl).searchParams;
+    expect(params.getAll("groundType")).toEqual(["Sable", "Stabilisé/cendrée"]);
+  });
 });

@@ -19,8 +19,20 @@ export type BoulodromesFeatureCollection = FeatureCollection<Point, BoulodromePr
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
-export async function fetchBoulodromes(): Promise<BoulodromesFeatureCollection> {
-  const response = await fetch(`${API_URL}/api/boulodromes`);
+export interface BoulodromesFilters {
+  groundTypes?: string[];
+}
+
+export async function fetchBoulodromes(
+  filters: BoulodromesFilters = {},
+): Promise<BoulodromesFeatureCollection> {
+  const params = new URLSearchParams();
+  for (const groundType of filters.groundTypes ?? []) {
+    params.append("groundType", groundType);
+  }
+  const query = params.toString();
+
+  const response = await fetch(`${API_URL}/api/boulodromes${query ? `?${query}` : ""}`);
   if (!response.ok) {
     throw new Error(`Erreur lors du chargement des boulodromes (${response.status})`);
   }

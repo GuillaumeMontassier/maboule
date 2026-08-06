@@ -18,12 +18,30 @@ app.get("/health", (_req, res) => {
   res.status(200).send("ok");
 });
 
+// Accepte `?groundType=Sable&groundType=Stabilisé/cendrée` (repetition du
+// parametre, gere nativement par Express) ou `?groundType=Sable,Stabilisé/cendrée`
+// (liste separee par virgules), pour rester simple a construire cote front.
+function parseListParam(value: unknown): string[] | undefined {
+  if (value === undefined) return undefined;
+  const raw = Array.isArray(value) ? value : [value];
+  const values = raw
+    .filter((v): v is string => typeof v === "string")
+    .flatMap((v) => v.split(","))
+    .map((v) => v.trim())
+    .filter(Boolean);
+  return values.length > 0 ? values : undefined;
+}
+
 app.get("/api/boulodromes", async (req, res) => {
   try {
     // `q` : recherche libre par nom (equipement/site) ou adresse
     // (rue/ville) - cf. findAllBoulodromes. Absent ou vide -> pas de filtre.
     const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
-    const rows = await findAllBoulodromes(db, q ? { search: q } : {});
+    const groundTypes = parseListParam(req.query.groundType);
+    const rows = await findAllBoulodromes(db, {
+      ...(q ? { search: q } : {}),
+      ...(groundTypes ? { groundTypes } : {}),
+    });
     res.json(toBoulodromeFeatureCollection(rows));
   } catch (error) {
     console.error(error);

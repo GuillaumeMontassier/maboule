@@ -34,3 +34,27 @@
   background: #fef3c7;
   color: #92400e;
 }
+
+.ground-type-filter {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-family: system-ui, sans-serif;
+  font-size: 0.9em;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.ground-type-filter label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: normal;
+}

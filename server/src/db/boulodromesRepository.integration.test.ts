@@ -128,3 +128,67 @@ describe("findAllBoulodromes (recherche)", () => {
     expect(ids).toContain(VINCENNES_ID);
   });
 });
+
+describe("findAllBoulodromes (filtre nature du sol)", () => {
+  const SABLE_ID = "test:ground-sable";
+  const STABILISE_ID = "test:ground-stabilise";
+
+  afterEach(async () => {
+    await db.delete(boulodromes).where(eq(boulodromes.id, SABLE_ID));
+    await db.delete(boulodromes).where(eq(boulodromes.id, STABILISE_ID));
+  });
+
+  it("filtre par nature du sol exacte", async () => {
+    await upsertBoulodromes(db, [
+      buildTestBoulodrome({ id: SABLE_ID, sourceId: SABLE_ID, groundType: "Sable" }),
+      buildTestBoulodrome({ id: STABILISE_ID, sourceId: STABILISE_ID, groundType: "Stabilisé/cendrée" }),
+    ]);
+
+    const rows = await findAllBoulodromes(db, { groundTypes: ["Sable"] });
+    const ids = rows.map((r) => r.id);
+
+    expect(ids).toContain(SABLE_ID);
+    expect(ids).not.toContain(STABILISE_ID);
+  });
+
+  it("accepte plusieurs valeurs (OR)", async () => {
+    await upsertBoulodromes(db, [
+      buildTestBoulodrome({ id: SABLE_ID, sourceId: SABLE_ID, groundType: "Sable" }),
+      buildTestBoulodrome({ id: STABILISE_ID, sourceId: STABILISE_ID, groundType: "Stabilisé/cendrée" }),
+    ]);
+
+    const rows = await findAllBoulodromes(db, {
+      groundTypes: ["Sable", "Stabilisé/cendrée"],
+    });
+    const ids = rows.map((r) => r.id);
+
+    expect(ids).toContain(SABLE_ID);
+    expect(ids).toContain(STABILISE_ID);
+  });
+
+  it("combine recherche texte et filtre de sol (AND)", async () => {
+    await upsertBoulodromes(db, [
+      buildTestBoulodrome({
+        id: SABLE_ID,
+        sourceId: SABLE_ID,
+        name: "Jardin du port de l'Arsenal",
+        groundType: "Sable",
+      }),
+      buildTestBoulodrome({
+        id: STABILISE_ID,
+        sourceId: STABILISE_ID,
+        name: "Jardin du port de l'Arsenal",
+        groundType: "Stabilisé/cendrée",
+      }),
+    ]);
+
+    const rows = await findAllBoulodromes(db, {
+      search: "arsenal",
+      groundTypes: ["Sable"],
+    });
+    const ids = rows.map((r) => r.id);
+
+    expect(ids).toContain(SABLE_ID);
+    expect(ids).not.toContain(STABILISE_ID);
+  });
+});

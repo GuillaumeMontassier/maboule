@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { cleanup, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import App from './App'
 import { fetchBoulodromes } from './api/boulodromes'
 import type { BoulodromesFeatureCollection } from './api/boulodromes'
@@ -63,5 +63,16 @@ describe('App', () => {
     render(<App />)
 
     expect(await screen.findByText(/erreur lors du chargement/i)).toBeTruthy()
+  })
+
+  it('recharge les boulodromes avec le filtre sélectionné quand une case "nature du sol" est cochée', async () => {
+    vi.mocked(fetchBoulodromes).mockResolvedValue(sampleCollection)
+
+    render(<App />)
+    await waitFor(() => expect(fetchBoulodromes).toHaveBeenCalledWith({ groundTypes: [] }))
+
+    fireEvent.click(screen.getByLabelText('Sable'))
+
+    await waitFor(() => expect(fetchBoulodromes).toHaveBeenCalledWith({ groundTypes: ['Sable'] }))
   })
 })

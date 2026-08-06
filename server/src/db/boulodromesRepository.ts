@@ -1,4 +1,4 @@
-import { ilike, or, sql } from "drizzle-orm";
+import { and, ilike, inArray, or, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type { Boulodrome } from "../models/boulodrome";
 import { boulodromes } from "./schema";
@@ -26,6 +26,9 @@ export interface FindAllBoulodromesOptions {
   // Recherche texte libre sur le nom (equipement ou site) et l'adresse
   // (rue, ville) ; insensible a la casse (ILIKE), sous-chaine (%terme%).
   search?: string;
+  // Filtre exact sur la nature du sol (ex. "Sable", "Stabilisé/cendrée") ;
+  // plusieurs valeurs = OR entre elles, combine en AND avec `search`.
+  groundTypes?: string[];
 }
 
 export async function findAllBoulodromes(
@@ -55,19 +58,29 @@ export async function findAllBoulodromes(
     })
     .from(boulodromes);
 
-  if (!options.search) {
+  const conditions = [];
+
+  if (options.search) {
+    const term = `%${options.search}%`;
+    conditions.push(
+      or(
+        ilike(boulodromes.name, term),
+        ilike(boulodromes.siteName, term),
+        ilike(boulodromes.street, term),
+        ilike(boulodromes.city, term),
+      ),
+    );
+  }
+
+  if (options.groundTypes && options.groundTypes.length > 0) {
+    conditions.push(inArray(boulodromes.groundType, options.groundTypes));
+  }
+
+  if (conditions.length === 0) {
     return query;
   }
 
-  const term = `%${options.search}%`;
-  return query.where(
-    or(
-      ilike(boulodromes.name, term),
-      ilike(boulodromes.siteName, term),
-      ilike(boulodromes.street, term),
-      ilike(boulodromes.city, term),
-    ),
-  );
+  return query.where(and(...conditions));
 }
 
 export async function upsertBoulodromes(
