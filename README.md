@@ -89,6 +89,10 @@ Une intégration complémentaire avec le portail open data de la **Ville de
 Paris** (opendata.paris.fr, également sous Licence Ouverte) est envisagée
 pour une phase ultérieure.
 
+Les données des cafés/bars/pubs proviennent d'**OpenStreetMap** (via
+l'API Overpass), sous licence **ODbL (Open Database License)** :
+`© les contributeurs d'OpenStreetMap`.
+
 ## Licence
 
 Code sous licence [MIT](./LICENSE).

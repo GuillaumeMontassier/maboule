@@ -1,18 +1,8 @@
-export class GeoCoordinates {
-  constructor(
-    public latitude: number,
-    public longitude: number,
-  ) {}
-}
+import { Address, GeoCoordinates } from "./geo";
 
-export class Address {
-  constructor(
-    public street: string,
-    public postalCode: string,
-    public city: string,
-    public inseeCode?: string,
-  ) {}
-}
+// Re-exportes pour compat : ces deux classes vivaient ici avant d'etre
+// partagees avec le modele Cafe (cf. models/geo.ts).
+export { Address, GeoCoordinates };
 
 export type BoulodromeSource = "opendata-paris" | "data-es" | "manual";
 

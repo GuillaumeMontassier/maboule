@@ -47,3 +47,27 @@ export const boulodromes = pgTable(
     ),
   ],
 );
+
+export const cafes = pgTable(
+  "cafes",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    amenityType: text("amenity_type").notNull(),
+    // Tags `addr:*` OSM : pas systematiquement renseignes, contrairement a
+    // l'adresse des boulodromes (source gouvernementale, toujours complete).
+    street: text("street"),
+    postalCode: text("postal_code"),
+    city: text("city"),
+    coordinates: geographyPoint("coordinates").notNull(),
+    source: text("source").notNull(),
+    sourceId: text("source_id").notNull(),
+    lastSyncedAt: timestamp("last_synced_at", { withTimezone: true }).notNull(),
+  },
+  (table) => [
+    index("cafes_coordinates_idx").using("gist", table.coordinates),
+    unique().on(table.source, table.sourceId),
+    check("cafes_source_check", sql`${table.source} in ('osm', 'manual')`),
+    check("cafes_amenity_type_check", sql`${table.amenityType} in ('cafe', 'bar', 'pub')`),
+  ],
+);
