@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { ilike, or, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type { Boulodrome } from "../models/boulodrome";
 import { boulodromes } from "./schema";
@@ -22,10 +22,17 @@ export interface BoulodromeRow {
   lastSyncedAt: Date;
 }
 
+export interface FindAllBoulodromesOptions {
+  // Recherche texte libre sur le nom (equipement ou site) et l'adresse
+  // (rue, ville) ; insensible a la casse (ILIKE), sous-chaine (%terme%).
+  search?: string;
+}
+
 export async function findAllBoulodromes(
   db: NodePgDatabase<typeof schema>,
+  options: FindAllBoulodromesOptions = {},
 ): Promise<BoulodromeRow[]> {
-  return db
+  const query = db
     .select({
       id: boulodromes.id,
       name: boulodromes.name,
@@ -47,6 +54,20 @@ export async function findAllBoulodromes(
       lastSyncedAt: boulodromes.lastSyncedAt,
     })
     .from(boulodromes);
+
+  if (!options.search) {
+    return query;
+  }
+
+  const term = `%${options.search}%`;
+  return query.where(
+    or(
+      ilike(boulodromes.name, term),
+      ilike(boulodromes.siteName, term),
+      ilike(boulodromes.street, term),
+      ilike(boulodromes.city, term),
+    ),
+  );
 }
 
 export async function upsertBoulodromes(

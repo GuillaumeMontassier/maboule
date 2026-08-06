@@ -18,9 +18,12 @@ app.get("/health", (_req, res) => {
   res.status(200).send("ok");
 });
 
-app.get("/api/boulodromes", async (_req, res) => {
+app.get("/api/boulodromes", async (req, res) => {
   try {
-    const rows = await findAllBoulodromes(db);
+    // `q` : recherche libre par nom (equipement/site) ou adresse
+    // (rue/ville) - cf. findAllBoulodromes. Absent ou vide -> pas de filtre.
+    const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
+    const rows = await findAllBoulodromes(db, q ? { search: q } : {});
     res.json(toBoulodromeFeatureCollection(rows));
   } catch (error) {
     console.error(error);
