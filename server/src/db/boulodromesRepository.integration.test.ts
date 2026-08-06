@@ -192,3 +192,90 @@ describe("findAllBoulodromes (filtre nature du sol)", () => {
     expect(ids).not.toContain(STABILISE_ID);
   });
 });
+
+describe("findAllBoulodromes (filtre type d'équipement)", () => {
+  const DECOUVERT_ID = "test:equipment-decouvert";
+  const COUVERT_ID = "test:equipment-couvert";
+
+  afterEach(async () => {
+    await db.delete(boulodromes).where(eq(boulodromes.id, DECOUVERT_ID));
+    await db.delete(boulodromes).where(eq(boulodromes.id, COUVERT_ID));
+  });
+
+  it("filtre par type d'équipement exact", async () => {
+    await upsertBoulodromes(db, [
+      buildTestBoulodrome({ id: DECOUVERT_ID, sourceId: DECOUVERT_ID, equipmentType: "Découvert" }),
+      buildTestBoulodrome({ id: COUVERT_ID, sourceId: COUVERT_ID, equipmentType: "Extérieur couvert" }),
+    ]);
+
+    const rows = await findAllBoulodromes(db, { equipmentTypes: ["Extérieur couvert"] });
+    const ids = rows.map((r) => r.id);
+
+    expect(ids).toContain(COUVERT_ID);
+    expect(ids).not.toContain(DECOUVERT_ID);
+  });
+
+  it("accepte plusieurs valeurs (OR)", async () => {
+    await upsertBoulodromes(db, [
+      buildTestBoulodrome({ id: DECOUVERT_ID, sourceId: DECOUVERT_ID, equipmentType: "Découvert" }),
+      buildTestBoulodrome({ id: COUVERT_ID, sourceId: COUVERT_ID, equipmentType: "Extérieur couvert" }),
+    ]);
+
+    const rows = await findAllBoulodromes(db, {
+      equipmentTypes: ["Découvert", "Extérieur couvert"],
+    });
+    const ids = rows.map((r) => r.id);
+
+    expect(ids).toContain(DECOUVERT_ID);
+    expect(ids).toContain(COUVERT_ID);
+  });
+});
+
+describe("findAllBoulodromes (filtre accès libre)", () => {
+  const LIBRE_ID = "test:access-libre";
+  const RESTREINT_ID = "test:access-restreint";
+
+  afterEach(async () => {
+    await db.delete(boulodromes).where(eq(boulodromes.id, LIBRE_ID));
+    await db.delete(boulodromes).where(eq(boulodromes.id, RESTREINT_ID));
+  });
+
+  it("filtre les boulodromes en accès libre (freeAccess: true)", async () => {
+    await upsertBoulodromes(db, [
+      buildTestBoulodrome({ id: LIBRE_ID, sourceId: LIBRE_ID, freeAccess: true }),
+      buildTestBoulodrome({ id: RESTREINT_ID, sourceId: RESTREINT_ID, freeAccess: false }),
+    ]);
+
+    const rows = await findAllBoulodromes(db, { freeAccess: true });
+    const ids = rows.map((r) => r.id);
+
+    expect(ids).toContain(LIBRE_ID);
+    expect(ids).not.toContain(RESTREINT_ID);
+  });
+
+  it("filtre les boulodromes à accès restreint (freeAccess: false)", async () => {
+    await upsertBoulodromes(db, [
+      buildTestBoulodrome({ id: LIBRE_ID, sourceId: LIBRE_ID, freeAccess: true }),
+      buildTestBoulodrome({ id: RESTREINT_ID, sourceId: RESTREINT_ID, freeAccess: false }),
+    ]);
+
+    const rows = await findAllBoulodromes(db, { freeAccess: false });
+    const ids = rows.map((r) => r.id);
+
+    expect(ids).toContain(RESTREINT_ID);
+    expect(ids).not.toContain(LIBRE_ID);
+  });
+
+  it("ne filtre pas quand `freeAccess` est absent", async () => {
+    await upsertBoulodromes(db, [
+      buildTestBoulodrome({ id: LIBRE_ID, sourceId: LIBRE_ID, freeAccess: true }),
+      buildTestBoulodrome({ id: RESTREINT_ID, sourceId: RESTREINT_ID, freeAccess: false }),
+    ]);
+
+    const rows = await findAllBoulodromes(db);
+    const ids = rows.map((r) => r.id);
+
+    expect(ids).toContain(LIBRE_ID);
+    expect(ids).toContain(RESTREINT_ID);
+  });
+});

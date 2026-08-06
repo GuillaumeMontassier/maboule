@@ -21,6 +21,8 @@ const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
 
 export interface BoulodromesFilters {
   groundTypes?: string[];
+  equipmentTypes?: string[];
+  freeAccess?: boolean;
 }
 
 export async function fetchBoulodromes(
@@ -29,6 +31,12 @@ export async function fetchBoulodromes(
   const params = new URLSearchParams();
   for (const groundType of filters.groundTypes ?? []) {
     params.append("groundType", groundType);
+  }
+  for (const equipmentType of filters.equipmentTypes ?? []) {
+    params.append("equipmentType", equipmentType);
+  }
+  if (filters.freeAccess !== undefined) {
+    params.append("freeAccess", String(filters.freeAccess));
   }
   const query = params.toString();
 

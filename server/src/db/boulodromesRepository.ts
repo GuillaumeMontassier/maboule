@@ -1,4 +1,4 @@
-import { and, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import type { Boulodrome } from "../models/boulodrome";
 import { boulodromes } from "./schema";
@@ -29,6 +29,11 @@ export interface FindAllBoulodromesOptions {
   // Filtre exact sur la nature du sol (ex. "Sable", "Stabilisé/cendrée") ;
   // plusieurs valeurs = OR entre elles, combine en AND avec `search`.
   groundTypes?: string[];
+  // Filtre exact sur le type d'équipement (ex. "Découvert", "Extérieur
+  // couvert") ; memes regles de combinaison que `groundTypes`.
+  equipmentTypes?: string[];
+  // Filtre exact sur l'accès libre/payant (`acces_libre` cote Data ES).
+  freeAccess?: boolean;
 }
 
 export async function findAllBoulodromes(
@@ -74,6 +79,14 @@ export async function findAllBoulodromes(
 
   if (options.groundTypes && options.groundTypes.length > 0) {
     conditions.push(inArray(boulodromes.groundType, options.groundTypes));
+  }
+
+  if (options.equipmentTypes && options.equipmentTypes.length > 0) {
+    conditions.push(inArray(boulodromes.equipmentType, options.equipmentTypes));
+  }
+
+  if (options.freeAccess !== undefined) {
+    conditions.push(eq(boulodromes.freeAccess, options.freeAccess));
   }
 
   if (conditions.length === 0) {

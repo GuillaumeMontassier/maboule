@@ -69,10 +69,56 @@ describe('App', () => {
     vi.mocked(fetchBoulodromes).mockResolvedValue(sampleCollection)
 
     render(<App />)
-    await waitFor(() => expect(fetchBoulodromes).toHaveBeenCalledWith({ groundTypes: [] }))
+    await waitFor(() =>
+      expect(fetchBoulodromes).toHaveBeenCalledWith({
+        groundTypes: [],
+        equipmentTypes: [],
+        freeAccess: undefined,
+      }),
+    )
 
     fireEvent.click(screen.getByLabelText('Sable'))
 
-    await waitFor(() => expect(fetchBoulodromes).toHaveBeenCalledWith({ groundTypes: ['Sable'] }))
+    await waitFor(() =>
+      expect(fetchBoulodromes).toHaveBeenCalledWith({
+        groundTypes: ['Sable'],
+        equipmentTypes: [],
+        freeAccess: undefined,
+      }),
+    )
+  })
+
+  it('recharge les boulodromes avec le filtre sélectionné quand une case "type d\'équipement" est cochée', async () => {
+    vi.mocked(fetchBoulodromes).mockResolvedValue(sampleCollection)
+
+    render(<App />)
+    await waitFor(() => expect(fetchBoulodromes).toHaveBeenCalledTimes(1))
+
+    fireEvent.click(screen.getByLabelText('Découvert'))
+
+    await waitFor(() =>
+      expect(fetchBoulodromes).toHaveBeenCalledWith({
+        groundTypes: [],
+        equipmentTypes: ['Découvert'],
+        freeAccess: undefined,
+      }),
+    )
+  })
+
+  it('recharge les boulodromes avec le filtre sélectionné dans le sélecteur "Accès"', async () => {
+    vi.mocked(fetchBoulodromes).mockResolvedValue(sampleCollection)
+
+    render(<App />)
+    await waitFor(() => expect(fetchBoulodromes).toHaveBeenCalledTimes(1))
+
+    fireEvent.change(screen.getByLabelText('Accès'), { target: { value: 'true' } })
+
+    await waitFor(() =>
+      expect(fetchBoulodromes).toHaveBeenCalledWith({
+        groundTypes: [],
+        equipmentTypes: [],
+        freeAccess: true,
+      }),
+    )
   })
 })

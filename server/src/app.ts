@@ -32,15 +32,27 @@ function parseListParam(value: unknown): string[] | undefined {
   return values.length > 0 ? values : undefined;
 }
 
+// "true"/"false" uniquement - toute autre valeur (absente, mal formee) est
+// traitee comme "pas de filtre" plutot que de faire echouer la requete.
+function parseBooleanParam(value: unknown): boolean | undefined {
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return undefined;
+}
+
 app.get("/api/boulodromes", async (req, res) => {
   try {
     // `q` : recherche libre par nom (equipement/site) ou adresse
     // (rue/ville) - cf. findAllBoulodromes. Absent ou vide -> pas de filtre.
     const q = typeof req.query.q === "string" ? req.query.q.trim() : "";
     const groundTypes = parseListParam(req.query.groundType);
+    const equipmentTypes = parseListParam(req.query.equipmentType);
+    const freeAccess = parseBooleanParam(req.query.freeAccess);
     const rows = await findAllBoulodromes(db, {
       ...(q ? { search: q } : {}),
       ...(groundTypes ? { groundTypes } : {}),
+      ...(equipmentTypes ? { equipmentTypes } : {}),
+      ...(freeAccess !== undefined ? { freeAccess } : {}),
     });
     res.json(toBoulodromeFeatureCollection(rows));
   } catch (error) {

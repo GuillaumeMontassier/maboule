@@ -77,4 +77,44 @@ describe("fetchBoulodromes", () => {
     const params = new URL(calledUrl).searchParams;
     expect(params.getAll("groundType")).toEqual(["Sable", "Stabilisé/cendrée"]);
   });
+
+  it("ajoute un paramètre equipmentType par valeur sélectionnée", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(sampleCollection),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchBoulodromes({ equipmentTypes: ["Découvert"] });
+
+    const calledUrl = fetchMock.mock.calls[0][0] as string;
+    const params = new URL(calledUrl).searchParams;
+    expect(params.getAll("equipmentType")).toEqual(["Découvert"]);
+  });
+
+  it("ajoute le paramètre freeAccess quand il est défini", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(sampleCollection),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchBoulodromes({ freeAccess: true });
+
+    const calledUrl = fetchMock.mock.calls[0][0] as string;
+    const params = new URL(calledUrl).searchParams;
+    expect(params.get("freeAccess")).toBe("true");
+  });
+
+  it("n'ajoute pas le paramètre freeAccess quand il est absent", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve(sampleCollection),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    await fetchBoulodromes({});
+
+    expect(fetchMock).toHaveBeenCalledWith("http://localhost:3000/api/boulodromes");
+  });
 });

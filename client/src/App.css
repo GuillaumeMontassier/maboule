@@ -35,11 +35,19 @@
   color: #92400e;
 }
 
-.ground-type-filter {
+.filters-bar {
   position: fixed;
   top: 12px;
   right: 12px;
   z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-family: system-ui, sans-serif;
+  font-size: 0.9em;
+}
+
+.checkbox-filter {
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -47,12 +55,10 @@
   border: 1px solid #d1d5db;
   border-radius: 8px;
   padding: 8px 12px;
-  font-family: system-ui, sans-serif;
-  font-size: 0.9em;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
 
-.ground-type-filter label {
+.checkbox-filter label {
   display: flex;
   align-items: center;
   gap: 6px;
