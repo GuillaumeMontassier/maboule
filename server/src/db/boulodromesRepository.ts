@@ -47,32 +47,31 @@ export interface BoundingBox {
   north: number;
 }
 
+// Champs communs a findAllBoulodromes/findBoulodromeById : evite de repeter
+// deux fois la reprojection ST_X/ST_Y (cf. commentaire dans schema.ts).
+const boulodromeSelection = {
+  id: boulodromes.id,
+  name: boulodromes.name,
+  street: boulodromes.street,
+  postalCode: boulodromes.postalCode,
+  city: boulodromes.city,
+  inseeCode: boulodromes.inseeCode,
+  longitude: sql<number>`ST_X(${boulodromes.coordinates}::geometry)`,
+  latitude: sql<number>`ST_Y(${boulodromes.coordinates}::geometry)`,
+  siteName: boulodromes.siteName,
+  equipmentType: boulodromes.equipmentType,
+  groundType: boulodromes.groundType,
+  freeAccess: boulodromes.freeAccess,
+  source: boulodromes.source,
+  sourceId: boulodromes.sourceId,
+  lastSyncedAt: boulodromes.lastSyncedAt,
+};
+
 export async function findAllBoulodromes(
   db: NodePgDatabase<typeof schema>,
   options: FindAllBoulodromesOptions = {},
 ): Promise<BoulodromeRow[]> {
-  const query = db
-    .select({
-      id: boulodromes.id,
-      name: boulodromes.name,
-      street: boulodromes.street,
-      postalCode: boulodromes.postalCode,
-      city: boulodromes.city,
-      inseeCode: boulodromes.inseeCode,
-      // La colonne est stockee en `geography` : on la reprojette en
-      // `geometry` pour en extraire lon/lat via ST_X/ST_Y, que Drizzle ne
-      // modelise pas nativement (cf. commentaire dans schema.ts).
-      longitude: sql<number>`ST_X(${boulodromes.coordinates}::geometry)`,
-      latitude: sql<number>`ST_Y(${boulodromes.coordinates}::geometry)`,
-      siteName: boulodromes.siteName,
-      equipmentType: boulodromes.equipmentType,
-      groundType: boulodromes.groundType,
-      freeAccess: boulodromes.freeAccess,
-      source: boulodromes.source,
-      sourceId: boulodromes.sourceId,
-      lastSyncedAt: boulodromes.lastSyncedAt,
-    })
-    .from(boulodromes);
+  const query = db.select(boulodromeSelection).from(boulodromes);
 
   const conditions = [];
 
@@ -116,6 +115,14 @@ export async function findAllBoulodromes(
   }
 
   return query.where(and(...conditions));
+}
+
+export async function findBoulodromeById(
+  db: NodePgDatabase<typeof schema>,
+  id: string,
+): Promise<BoulodromeRow | undefined> {
+  const rows = await db.select(boulodromeSelection).from(boulodromes).where(eq(boulodromes.id, id)).limit(1);
+  return rows[0];
 }
 
 export async function upsertBoulodromes(

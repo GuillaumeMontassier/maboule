@@ -2,9 +2,12 @@ import cors from "cors";
 import express from "express";
 import swaggerUi from "swagger-ui-express";
 import { db } from "./db/client";
-import { findAllBoulodromes } from "./db/boulodromesRepository";
+import { findAllBoulodromes, findBoulodromeById } from "./db/boulodromesRepository";
+import { findCafesNearBoulodrome } from "./db/cafesRepository";
 import { toBoulodromeFeatureCollection } from "./geojson/boulodromes";
+import { toCafeFeatureCollection } from "./geojson/cafes";
 import { generateOpenApiDocument } from "./openapi/document";
+import { boulodromeIdParamSchema, cafesNearBoulodromeQuerySchema } from "./schemas/cafesNearBoulodromeQuery";
 import { boulodromesQuerySchema } from "./schemas/boulodromesQuery";
 
 export const app = express();
@@ -56,5 +59,42 @@ app.get("/api/boulodromes", async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Erreur lors de la récupération des boulodromes" });
+  }
+});
+
+app.get("/api/boulodromes/:id/cafes", async (req, res) => {
+  const parsedParams = boulodromeIdParamSchema.safeParse(req.params);
+  const parsedQuery = cafesNearBoulodromeQuerySchema.safeParse(req.query);
+  if (!parsedParams.success || !parsedQuery.success) {
+    const issues = [
+      ...(parsedParams.success ? [] : parsedParams.error.issues),
+      ...(parsedQuery.success ? [] : parsedQuery.error.issues),
+    ];
+    res.status(400).json({
+      error: "Paramètres de requête invalides",
+      details: issues.map((issue) => ({ path: issue.path.join("."), message: issue.message })),
+    });
+    return;
+  }
+
+  const { id } = parsedParams.data;
+  const { radius } = parsedQuery.data;
+
+  try {
+    // Necessaire pour distinguer "boulodrome inconnu" (404) de "boulodrome
+    // existant mais sans café dans le rayon" (200 + FeatureCollection vide) —
+    // findCafesNearBoulodrome seul ne fait pas la difference (jointure sans
+    // resultat dans les deux cas).
+    const boulodrome = await findBoulodromeById(db, id);
+    if (!boulodrome) {
+      res.status(404).json({ error: "Boulodrome introuvable" });
+      return;
+    }
+
+    const rows = await findCafesNearBoulodrome(db, id, radius);
+    res.json(toCafeFeatureCollection(rows));
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Erreur lors de la récupération des cafés à proximité" });
   }
 });

@@ -21,7 +21,7 @@ export const BoulodromePropertiesSchema = boulodromeRowSchema
   })
   .openapi("BoulodromeProperties");
 
-const PointGeometrySchema = z
+export const PointGeometrySchema = z
   .object({
     type: z.literal("Point"),
     // [longitude, latitude], convention GeoJSON.
