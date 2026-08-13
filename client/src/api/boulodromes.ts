@@ -23,6 +23,7 @@ export interface BoulodromesFilters {
   groundTypes?: string[];
   equipmentTypes?: string[];
   freeAccess?: boolean;
+  search?: string;
 }
 
 export async function fetchBoulodromes(
@@ -37,6 +38,9 @@ export async function fetchBoulodromes(
   }
   if (filters.freeAccess !== undefined) {
     params.append("freeAccess", String(filters.freeAccess));
+  }
+  if (filters.search) {
+    params.append("q", filters.search);
   }
   const query = params.toString();
 
