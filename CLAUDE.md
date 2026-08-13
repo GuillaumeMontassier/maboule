@@ -96,6 +96,9 @@ Objectifs de cette phase :
 - Nommage des fichiers : kebab-case pour les fichiers, PascalCase pour les
   composants React
 - Commits atomiques, un commit = une étape logique de la roadmap
+- Ne jamais commit directement sur `main` : toujours créer une branche de
+  travail (ex. `feat/<sujet>`) pour le travail en cours, même en l'absence
+  de dépôt distant/PR
 
 ## Important : pédagogie
 Ce projet sert aussi à apprendre. Sur toute techno nouvelle pour moi
@@ -123,3 +126,15 @@ Ce projet sert aussi à apprendre. Sur toute techno nouvelle pour moi
 Ne pas anticiper les phases suivantes (recherche, filtres, cafés à
 proximité, itinéraire, suggestions utilisateurs) sauf si explicitement
 demandé — on avance phase par phase.
+
+## Agent skills
+
+### Issue tracker
+
+Issues et specs vivent sous forme de fichiers markdown locaux dans
+`.scratch/`. Voir `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context — un `CONTEXT.md` + `docs/adr/` à la racine du repo. Voir
+`docs/agents/domain.md`.
