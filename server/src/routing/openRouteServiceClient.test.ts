@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { GeoCoordinates } from "../models/geo";
-import { buildDirectionsRequestBody, RouteNotFoundError, toRouteFeature } from "./openRouteServiceClient";
+import {
+  AddressNotFoundError,
+  buildDirectionsRequestBody,
+  buildGeocodeSearchParams,
+  RouteNotFoundError,
+  toGeocodeCandidates,
+  toRouteFeature,
+} from "./openRouteServiceClient";
 
 describe("buildDirectionsRequestBody", () => {
   it("ordonne les coordonnées en [longitude, latitude], origine puis destination", () => {
@@ -55,5 +62,39 @@ describe("toRouteFeature", () => {
 
   it("lève RouteNotFoundError quand la réponse ne contient aucune feature", () => {
     expect(() => toRouteFeature({ features: [] })).toThrow(RouteNotFoundError);
+  });
+});
+
+describe("buildGeocodeSearchParams", () => {
+  it("transmet la requête telle quelle dans le paramètre text", () => {
+    expect(buildGeocodeSearchParams("12 rue de Rivoli, Paris")).toEqual({
+      text: "12 rue de Rivoli, Paris",
+    });
+  });
+});
+
+describe("toGeocodeCandidates", () => {
+  it("mappe une réponse ORS vers des candidats {label, coordinates}, triés comme reçus (pertinence Pelias)", () => {
+    const orsResponse = {
+      features: [
+        {
+          geometry: { type: "Point" as const, coordinates: [2.3522, 48.8566] as [number, number] },
+          properties: { label: "12 Rue de Rivoli, 75001 Paris, France" },
+        },
+        {
+          geometry: { type: "Point" as const, coordinates: [2.36, 48.86] as [number, number] },
+          properties: { label: "12 Rue de Rivoli, 75004 Paris, France" },
+        },
+      ],
+    };
+
+    expect(toGeocodeCandidates(orsResponse)).toEqual([
+      { label: "12 Rue de Rivoli, 75001 Paris, France", coordinates: new GeoCoordinates(48.8566, 2.3522) },
+      { label: "12 Rue de Rivoli, 75004 Paris, France", coordinates: new GeoCoordinates(48.86, 2.36) },
+    ]);
+  });
+
+  it("lève AddressNotFoundError quand la réponse ne contient aucune feature", () => {
+    expect(() => toGeocodeCandidates({ features: [] })).toThrow(AddressNotFoundError);
   });
 });

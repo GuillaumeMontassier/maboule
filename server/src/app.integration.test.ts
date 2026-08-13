@@ -9,15 +9,23 @@ import { boulodromes, cafes } from "./db/schema";
 import { Boulodrome } from "./models/boulodrome";
 import { Cafe } from "./models/cafe";
 import { Address, GeoCoordinates } from "./models/geo";
-import { fetchWalkingRoute, OpenRouteServiceUnavailableError, RouteNotFoundError } from "./routing/openRouteServiceClient";
+import {
+  AddressNotFoundError,
+  fetchGeocodeCandidates,
+  fetchWalkingRoute,
+  OpenRouteServiceUnavailableError,
+  RouteNotFoundError,
+} from "./routing/openRouteServiceClient";
 
-// Seule frontiere reseau sortante du endpoint /route (cf. ticket) : on mocke
-// uniquement fetchWalkingRoute, tout le reste (validation Zod, resolution du
-// boulodrome, vrai Postgres/PostGIS) s'execute reellement - meme discipline
-// que le reste de ce fichier.
+// Seule frontiere reseau sortante des endpoints /route et /geocode (cf.
+// ticket) : on mocke uniquement fetchWalkingRoute/fetchGeocodeCandidates,
+// tout le reste (validation Zod, resolution du boulodrome, vrai
+// Postgres/PostGIS) s'execute reellement - meme discipline que le reste de
+// ce fichier.
 vi.mock("./routing/openRouteServiceClient", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./routing/openRouteServiceClient")>()),
   fetchWalkingRoute: vi.fn(),
+  fetchGeocodeCandidates: vi.fn(),
 }));
 
 // Tape le vrai Postgres/PostGIS local (docker compose up -d), comme les
@@ -208,6 +216,73 @@ describe("GET /api/boulodromes/:id/route", () => {
     vi.mocked(fetchWalkingRoute).mockRejectedValue(new OpenRouteServiceUnavailableError("indisponible"));
 
     const response = await request(app).get(`/api/boulodromes/${BOULODROME_ID}/route`).query({ from: FROM });
+
+    expect(response.status).toBe(502);
+    expect(response.body.error).toBeDefined();
+  });
+});
+
+describe("GET /api/geocode", () => {
+  const oneCandidate = [
+    { label: "12 Rue de Rivoli, 75001 Paris, France", coordinates: new GeoCoordinates(48.8566, 2.3522) },
+  ];
+
+  const twoCandidates = [
+    ...oneCandidate,
+    { label: "12 Rue de Rivoli, 75004 Paris, France", coordinates: new GeoCoordinates(48.86, 2.353) },
+  ];
+
+  afterEach(() => {
+    vi.mocked(fetchGeocodeCandidates).mockReset();
+  });
+
+  it("renvoie la liste des candidats (cas nominal, un seul résultat)", async () => {
+    vi.mocked(fetchGeocodeCandidates).mockResolvedValue(oneCandidate);
+
+    const response = await request(app).get("/api/geocode").query({ q: "12 rue de Rivoli" });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(oneCandidate);
+    expect(fetchGeocodeCandidates).toHaveBeenCalledWith("12 rue de Rivoli");
+  });
+
+  it("renvoie la liste complète quand plusieurs adresses correspondent (pas une erreur)", async () => {
+    vi.mocked(fetchGeocodeCandidates).mockResolvedValue(twoCandidates);
+
+    const response = await request(app).get("/api/geocode").query({ q: "12 rue de Rivoli" });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual(twoCandidates);
+  });
+
+  it("renvoie 404 quand aucune adresse ne correspond", async () => {
+    vi.mocked(fetchGeocodeCandidates).mockRejectedValue(new AddressNotFoundError("Aucune adresse trouvée"));
+
+    const response = await request(app).get("/api/geocode").query({ q: "adresse-inexistante-xyz" });
+
+    expect(response.status).toBe(404);
+    expect(response.body.error).toBeDefined();
+  });
+
+  it("renvoie 400 quand q est absent", async () => {
+    const response = await request(app).get("/api/geocode");
+
+    expect(response.status).toBe(400);
+    expect(response.body.details).toEqual(expect.arrayContaining([expect.objectContaining({ path: "q" })]));
+    expect(fetchGeocodeCandidates).not.toHaveBeenCalled();
+  });
+
+  it("renvoie 400 quand q est vide", async () => {
+    const response = await request(app).get("/api/geocode").query({ q: "" });
+
+    expect(response.status).toBe(400);
+    expect(response.body.details).toEqual(expect.arrayContaining([expect.objectContaining({ path: "q" })]));
+  });
+
+  it("renvoie 502 quand OpenRouteService échoue", async () => {
+    vi.mocked(fetchGeocodeCandidates).mockRejectedValue(new OpenRouteServiceUnavailableError("indisponible"));
+
+    const response = await request(app).get("/api/geocode").query({ q: "12 rue de Rivoli" });
 
     expect(response.status).toBe(502);
     expect(response.body.error).toBeDefined();

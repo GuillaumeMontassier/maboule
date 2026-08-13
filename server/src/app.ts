@@ -8,9 +8,16 @@ import { toBoulodromeFeatureCollection } from "./geojson/boulodromes";
 import { toCafeFeatureCollection } from "./geojson/cafes";
 import { GeoCoordinates } from "./models/geo";
 import { generateOpenApiDocument } from "./openapi/document";
-import { fetchWalkingRoute, OpenRouteServiceUnavailableError, RouteNotFoundError } from "./routing/openRouteServiceClient";
+import {
+  AddressNotFoundError,
+  fetchGeocodeCandidates,
+  fetchWalkingRoute,
+  OpenRouteServiceUnavailableError,
+  RouteNotFoundError,
+} from "./routing/openRouteServiceClient";
 import { boulodromeIdParamSchema, cafesNearBoulodromeQuerySchema } from "./schemas/cafesNearBoulodromeQuery";
 import { boulodromesQuerySchema } from "./schemas/boulodromesQuery";
+import { geocodeQuerySchema } from "./schemas/geocodeQuery";
 import { routeQuerySchema } from "./schemas/routeQuery";
 
 export const app = express();
@@ -149,5 +156,30 @@ app.get("/api/boulodromes/:id/route", async (req, res) => {
     }
     console.error(error);
     res.status(500).json({ error: "Erreur lors du calcul de l'itinéraire" });
+  }
+});
+
+app.get("/api/geocode", async (req, res) => {
+  const parsed = geocodeQuerySchema.safeParse(req.query);
+  if (rejectIfInvalid(res, [parsed])) return;
+  if (!parsed.success) return;
+
+  const { q } = parsed.data;
+
+  try {
+    const candidates = await fetchGeocodeCandidates(q);
+    res.json(candidates);
+  } catch (error) {
+    if (error instanceof AddressNotFoundError) {
+      res.status(404).json({ error: error.message });
+      return;
+    }
+    // Meme convention 502 que /route : erreur cote fournisseur, pas cote nous.
+    if (error instanceof OpenRouteServiceUnavailableError) {
+      res.status(502).json({ error: error.message });
+      return;
+    }
+    console.error(error);
+    res.status(500).json({ error: "Erreur lors du géocodage de l'adresse" });
   }
 });

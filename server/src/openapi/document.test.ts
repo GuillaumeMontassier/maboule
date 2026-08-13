@@ -7,6 +7,7 @@ describe("generateOpenApiDocument", () => {
 
     expect(document.openapi).toBe("3.1.0");
     expect(document.paths?.["/api/boulodromes"]?.get).toBeDefined();
+    expect(document.paths?.["/api/geocode"]?.get).toBeDefined();
     expect(document.paths?.["/health"]?.get).toBeDefined();
   });
 

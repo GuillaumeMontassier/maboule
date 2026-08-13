@@ -1,7 +1,8 @@
 import type { Feature, LineString } from "geojson";
-import type { GeoCoordinates } from "../models/geo";
+import { GeoCoordinates } from "../models/geo";
 
 const ORS_DIRECTIONS_API = "https://api.openrouteservice.org/v2/directions/foot-walking/geojson";
+const ORS_GEOCODE_SEARCH_API = "https://api.openrouteservice.org/geocode/search";
 
 // Au-dela de ce delai on considere ORS en panne plutot que d'attendre
 // indefiniment - garde le endpoint reactif meme si le fournisseur externe
@@ -109,6 +110,77 @@ export async function fetchWalkingRoute(origin: GeoCoordinates, destination: Geo
     // tel quel. Tout le reste (panne reseau, timeout/AbortError, JSON
     // invalide) traduit un fournisseur en cause.
     if (error instanceof RouteNotFoundError) {
+      throw error;
+    }
+    throw new OpenRouteServiceUnavailableError("OpenRouteService est injoignable ou a échoué", { cause: error });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export interface GeocodeCandidate {
+  label: string;
+  coordinates: GeoCoordinates;
+}
+
+export class AddressNotFoundError extends Error {}
+
+export interface OrsGeocodeSearchParams {
+  text: string;
+}
+
+export function buildGeocodeSearchParams(query: string): OrsGeocodeSearchParams {
+  return { text: query };
+}
+
+export interface OrsGeocodeResponse {
+  features: Array<{
+    geometry: { type: "Point"; coordinates: [number, number] };
+    properties: { label: string };
+  }>;
+}
+
+export function toGeocodeCandidates(response: OrsGeocodeResponse): GeocodeCandidate[] {
+  // Contrairement aux directions (une reponse sans feature = "aucun
+  // itineraire", cas metier explicite cote ORS), Pelias renvoie ici un 200
+  // avec une liste vide quand aucune adresse ne correspond - c'est nous qui
+  // choisissons de traduire cette liste vide en 404 cote appelant.
+  if (response.features.length === 0) {
+    throw new AddressNotFoundError("Aucune adresse trouvée");
+  }
+
+  return response.features.map((feature) => ({
+    label: feature.properties.label,
+    // GeoJSON = [longitude, latitude], l'inverse de notre GeoCoordinates.
+    coordinates: new GeoCoordinates(feature.geometry.coordinates[1], feature.geometry.coordinates[0]),
+  }));
+}
+
+export async function fetchGeocodeCandidates(query: string): Promise<GeocodeCandidate[]> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  // Endpoint GET (contrairement aux directions, en POST) : ORS attend la cle
+  // API en query param `api_key`, pas dans l'en-tete Authorization.
+  const url = new URL(ORS_GEOCODE_SEARCH_API);
+  const params = buildGeocodeSearchParams(query);
+  url.searchParams.set("text", params.text);
+  url.searchParams.set("api_key", process.env.ORS_API_KEY ?? "");
+
+  try {
+    const response = await fetch(url, { signal: controller.signal });
+
+    if (!response.ok) {
+      throw new OpenRouteServiceUnavailableError(`OpenRouteService a renvoyé une erreur (${response.status})`);
+    }
+
+    const body = (await response.json()) as OrsGeocodeResponse;
+    return toGeocodeCandidates(body);
+  } catch (error) {
+    // AddressNotFoundError est un signal metier (aucune adresse trouvee),
+    // pas une panne fournisseur - on le laisse remonter tel quel, meme
+    // logique que RouteNotFoundError ci-dessus.
+    if (error instanceof AddressNotFoundError || error instanceof OpenRouteServiceUnavailableError) {
       throw error;
     }
     throw new OpenRouteServiceUnavailableError("OpenRouteService est injoignable ou a échoué", { cause: error });

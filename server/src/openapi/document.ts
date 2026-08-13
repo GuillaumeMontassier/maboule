@@ -4,6 +4,8 @@ import { BoulodromeFeatureCollectionSchema } from "../schemas/boulodromeProperti
 import { boulodromesQuerySchema } from "../schemas/boulodromesQuery";
 import { CafeFeatureCollectionSchema } from "../schemas/cafeProperties";
 import { boulodromeIdParamSchema, cafesNearBoulodromeQuerySchema } from "../schemas/cafesNearBoulodromeQuery";
+import { GeocodeCandidateListSchema } from "../schemas/geocodeCandidate";
+import { geocodeQuerySchema } from "../schemas/geocodeQuery";
 import { RouteFeatureSchema } from "../schemas/routeProperties";
 import { routeQuerySchema } from "../schemas/routeQuery";
 
@@ -101,6 +103,40 @@ registry.registerPath({
     },
     404: {
       description: "Boulodrome inconnu, ou aucun itinéraire trouvé entre les deux points",
+      content: { "application/json": { schema: errorSchema } },
+    },
+    502: {
+      description: "OpenRouteService est indisponible, en timeout, ou renvoie une erreur",
+      content: { "application/json": { schema: errorSchema } },
+    },
+    500: {
+      description: "Erreur inattendue côté serveur",
+      content: { "application/json": { schema: errorSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/geocode",
+  summary: "Géocodage d'une adresse en liste de candidats",
+  description:
+    "Renvoie, via OpenRouteService, la liste des adresses correspondant à la recherche libre, triée par " +
+    "pertinence. Plusieurs candidats n'est pas une erreur : c'est au client de proposer un choix.",
+  request: {
+    query: geocodeQuerySchema,
+  },
+  responses: {
+    200: {
+      description: "Liste des adresses candidates correspondant à la recherche",
+      content: { "application/json": { schema: GeocodeCandidateListSchema } },
+    },
+    400: {
+      description: "Paramètre de requête invalide (q absent ou vide)",
+      content: { "application/json": { schema: validationErrorSchema } },
+    },
+    404: {
+      description: "Aucune adresse ne correspond à la recherche",
       content: { "application/json": { schema: errorSchema } },
     },
     502: {
