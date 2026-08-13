@@ -7,6 +7,8 @@ import { fetchBoulodromes } from "../api/boulodromes";
 import type { BoulodromesFeatureCollection } from "../api/boulodromes";
 import { fetchRoute } from "../api/route";
 import type { RouteFeature } from "../api/route";
+import { fetchGeocodeCandidates } from "../api/geocode";
+import type { GeocodeCandidate } from "../api/geocode";
 
 vi.mock("../api/cafes", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../api/cafes")>()),
@@ -21,6 +23,11 @@ vi.mock("../api/boulodromes", async (importOriginal) => ({
 vi.mock("../api/route", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../api/route")>()),
   fetchRoute: vi.fn(),
+}));
+
+vi.mock("../api/geocode", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../api/geocode")>()),
+  fetchGeocodeCandidates: vi.fn(),
 }));
 
 const sampleBoulodromes: BoulodromesFeatureCollection = {
@@ -132,11 +139,21 @@ function fakePosition(latitude: number, longitude: number): GeolocationPosition 
   } as GeolocationPosition;
 }
 
+const singleCandidate: GeocodeCandidate[] = [
+  { label: "12 Rue de Rivoli, 75001 Paris", coordinates: { latitude: 48.856, longitude: 2.351 } },
+];
+
+const ambiguousCandidates: GeocodeCandidate[] = [
+  { label: "12 Rue de Rivoli, 75001 Paris", coordinates: { latitude: 48.856, longitude: 2.351 } },
+  { label: "12 Rue de Rivoli, 69001 Lyon", coordinates: { latitude: 45.767, longitude: 4.834 } },
+];
+
 afterEach(() => {
   cleanup();
   vi.mocked(fetchCafesNearBoulodrome).mockReset();
   vi.mocked(fetchBoulodromes).mockReset();
   vi.mocked(fetchRoute).mockReset();
+  vi.mocked(fetchGeocodeCandidates).mockReset();
   Reflect.deleteProperty(window.navigator, "geolocation");
 });
 
@@ -368,5 +385,85 @@ describe("BoulodromesMap - itinéraire depuis la position GPS", () => {
 
     await waitFor(() => expect(container.querySelector(".route-start-marker")).toBeNull());
     expect(await screen.findByText(/Géolocalisation refusée/)).toBeTruthy();
+  });
+});
+
+describe("BoulodromesMap - itinéraire depuis une adresse recherchée", () => {
+  async function selectBoulodromeAndSearchAddress(container: HTMLElement, query: string) {
+    const [marker] = container.querySelectorAll(".leaflet-marker-icon");
+    fireEvent.click(marker);
+
+    fireEvent.change(await screen.findByLabelText("Adresse de départ"), {
+      target: { value: query },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Rechercher l'adresse" }));
+  }
+
+  it("adresse avec un seul résultat -> itinéraire affiché directement", async () => {
+    vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes);
+    vi.mocked(fetchGeocodeCandidates).mockResolvedValue(singleCandidate);
+    vi.mocked(fetchRoute).mockResolvedValue(sampleRoute);
+
+    const { container } = render(<BoulodromesMap features={sampleBoulodromes} />);
+    await selectBoulodromeAndSearchAddress(container, "12 rue de rivoli");
+
+    await waitFor(() =>
+      expect(fetchRoute).toHaveBeenCalledWith("data-es:1", { latitude: 48.856, longitude: 2.351 }),
+    );
+    await waitFor(() => expect(container.querySelector(".route-start-marker")).toBeTruthy());
+    expect(await screen.findByText(/846 m/)).toBeTruthy();
+  });
+
+  it("adresse ambiguë -> liste de choix affichée puis sélection -> itinéraire affiché", async () => {
+    vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes);
+    vi.mocked(fetchGeocodeCandidates).mockResolvedValue(ambiguousCandidates);
+    vi.mocked(fetchRoute).mockResolvedValue(sampleRoute);
+
+    const { container } = render(<BoulodromesMap features={sampleBoulodromes} />);
+    await selectBoulodromeAndSearchAddress(container, "12 rue de rivoli");
+
+    expect(fetchRoute).not.toHaveBeenCalled();
+    const lyonOption = await screen.findByRole("button", { name: /69001 Lyon/ });
+
+    fireEvent.click(lyonOption);
+
+    await waitFor(() =>
+      expect(fetchRoute).toHaveBeenCalledWith("data-es:1", { latitude: 45.767, longitude: 4.834 }),
+    );
+    expect(await screen.findByText(/846 m/)).toBeTruthy();
+  });
+
+  it("adresse sans résultat -> message affiché", async () => {
+    vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes);
+    vi.mocked(fetchGeocodeCandidates).mockRejectedValue(
+      new Error("Aucune adresse ne correspond à cette recherche."),
+    );
+
+    const { container } = render(<BoulodromesMap features={sampleBoulodromes} />);
+    await selectBoulodromeAndSearchAddress(container, "adresse inexistante");
+
+    expect(await screen.findByText(/Aucune adresse ne correspond/)).toBeTruthy();
+    expect(fetchRoute).not.toHaveBeenCalled();
+  });
+
+  it("une nouvelle recherche d'adresse ambiguë retire le tracé déjà affiché en attendant un choix", async () => {
+    vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes);
+    vi.mocked(fetchGeocodeCandidates).mockResolvedValueOnce(singleCandidate).mockResolvedValueOnce(ambiguousCandidates);
+    vi.mocked(fetchRoute).mockResolvedValue(sampleRoute);
+
+    const { container } = render(<BoulodromesMap features={sampleBoulodromes} />);
+    await selectBoulodromeAndSearchAddress(container, "12 rue de rivoli");
+    await waitFor(() => expect(container.querySelector(".route-start-marker")).toBeTruthy());
+
+    // Deuxieme recherche, cette fois ambigue : le trace de la premiere
+    // adresse (deja affiche) ne doit pas rester sur la carte pendant que
+    // l'utilisateur choisit parmi les candidats de la seconde recherche.
+    fireEvent.change(screen.getByLabelText("Adresse de départ"), {
+      target: { value: "12 rue de rivoli" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Rechercher l'adresse" }));
+
+    await screen.findByRole("button", { name: /69001 Lyon/ });
+    expect(container.querySelector(".route-start-marker")).toBeNull();
   });
 });

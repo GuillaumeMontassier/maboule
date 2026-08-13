@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { fetchRoute, type RouteFeature } from "../api/route";
+import { fetchGeocodeCandidates, type GeocodeCandidate } from "../api/geocode";
 
 type RouteState =
   | { status: "idle" }
   | { status: "locating" }
+  | { status: "geocoding" }
+  | { status: "choosing"; candidates: GeocodeCandidate[] }
   | { status: "loading" }
   | { status: "error"; message: string }
   | { status: "success"; route: RouteFeature };
@@ -38,6 +41,7 @@ function formatDuration(durationSeconds: number): string {
 
 export function RoutePanel({ boulodromeId, onRouteChange }: RoutePanelProps) {
   const [state, setState] = useState<RouteState>({ status: "idle" });
+  const [addressQuery, setAddressQuery] = useState("");
   // Le panneau est remonte (nouvelle instance, cf. `key` cote appelant) des
   // qu'un autre boulodrome est selectionne, mais les callbacks async de la
   // requete en cours pour l'ANCIENNE instance (geolocalisation, fetchRoute)
@@ -56,6 +60,25 @@ export function RoutePanel({ boulodromeId, onRouteChange }: RoutePanelProps) {
     };
   }, [onRouteChange]);
 
+  // Partage entre le flux GPS et le flux adresse : les deux finissent par un
+  // point de depart resolu en coordonnees, a partir duquel le calcul
+  // d'itineraire et sa gestion d'etat (loading/succes/erreur) sont identiques.
+  function requestRoute(from: { latitude: number; longitude: number }) {
+    setState({ status: "loading" });
+    fetchRoute(boulodromeId, from)
+      .then((route) => {
+        if (!isCurrent.current) return;
+        setState({ status: "success", route });
+        onRouteChange(route);
+      })
+      .catch((error: unknown) => {
+        if (!isCurrent.current) return;
+        const message = error instanceof Error ? error.message : "Erreur inconnue";
+        setState({ status: "error", message });
+        onRouteChange(null);
+      });
+  }
+
   function handleUseMyLocation() {
     // Permission refusee ou geolocalisation non disponible : gere
     // entierement cote frontend, aucun appel reseau declenche (cf. spec).
@@ -71,22 +94,10 @@ export function RoutePanel({ boulodromeId, onRouteChange }: RoutePanelProps) {
     navigator.geolocation.getCurrentPosition(
       (position) => {
         if (!isCurrent.current) return;
-        setState({ status: "loading" });
-        fetchRoute(boulodromeId, {
+        requestRoute({
           latitude: position.coords.latitude,
           longitude: position.coords.longitude,
-        })
-          .then((route) => {
-            if (!isCurrent.current) return;
-            setState({ status: "success", route });
-            onRouteChange(route);
-          })
-          .catch((error: unknown) => {
-            if (!isCurrent.current) return;
-            const message = error instanceof Error ? error.message : "Erreur inconnue";
-            setState({ status: "error", message });
-            onRouteChange(null);
-          });
+        });
       },
       (error) => {
         if (!isCurrent.current) return;
@@ -96,25 +107,96 @@ export function RoutePanel({ boulodromeId, onRouteChange }: RoutePanelProps) {
         // doivent pas se retrouver en desaccord sur l'existence d'un trace.
         onRouteChange(null);
       },
+      // Sans timeout, un appareil qui ne renvoie jamais de position (pas de
+      // fix GPS, prompt de permission bloque) laisserait "locating" indefini
+      // - ce qui, `busy` desactivant aussi le formulaire d'adresse, prive
+      // l'utilisateur du repli par adresse que ce champ existe justement pour
+      // offrir. Le code gerait deja ce cas cote message (`TIMEOUT` ci-dessus)
+      // mais rien ne le declenchait avant.
+      { timeout: 10_000 },
     );
   }
+
+  function handleAddressSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const trimmed = addressQuery.trim();
+    if (!trimmed) return;
+
+    setState({ status: "geocoding" });
+    fetchGeocodeCandidates(trimmed)
+      .then((candidates) => {
+        if (!isCurrent.current) return;
+        // Un seul candidat : pas d'ambiguite, on calcule directement
+        // l'itineraire plutot que de faire choisir l'utilisateur parmi une
+        // liste a un seul element (cf. spec).
+        if (candidates.length === 1) {
+          requestRoute(candidates[0].coordinates);
+          return;
+        }
+        setState({ status: "choosing", candidates });
+        // Efface un trace deja affiche (ex. nouvelle recherche d'adresse
+        // apres un premier itineraire reussi) - meme raisonnement que sur
+        // l'echec de geolocalisation ci-dessus : le panneau (en attente d'un
+        // choix) et la carte (trace de l'ancienne adresse) ne doivent pas se
+        // retrouver en desaccord.
+        onRouteChange(null);
+      })
+      .catch((error: unknown) => {
+        if (!isCurrent.current) return;
+        // Couvre aussi bien "aucun resultat" (404 -> message d'erreur cote
+        // fetchGeocodeCandidates) qu'une panne du service de geocodage.
+        const message = error instanceof Error ? error.message : "Erreur inconnue";
+        setState({ status: "error", message });
+        onRouteChange(null);
+      });
+  }
+
+  function handleSelectCandidate(candidate: GeocodeCandidate) {
+    requestRoute(candidate.coordinates);
+  }
+
+  const busy = state.status === "locating" || state.status === "loading" || state.status === "geocoding";
 
   return (
     <div className="route-panel">
       <h2>Itinéraire</h2>
-      <button
-        type="button"
-        onClick={handleUseMyLocation}
-        disabled={state.status === "locating" || state.status === "loading"}
-      >
+      <button type="button" onClick={handleUseMyLocation} disabled={busy}>
         Utiliser ma position
       </button>
+      <p className="route-panel-divider">ou</p>
+      <form onSubmit={handleAddressSubmit} className="route-panel-address-form">
+        <input
+          type="search"
+          aria-label="Adresse de départ"
+          placeholder="Rechercher une adresse de départ…"
+          value={addressQuery}
+          onChange={(event) => setAddressQuery(event.target.value)}
+          disabled={busy}
+        />
+        <button type="submit" disabled={busy}>
+          Rechercher l'adresse
+        </button>
+      </form>
       {state.status === "locating" && (
         <p className="route-panel-status">Récupération de votre position…</p>
+      )}
+      {state.status === "geocoding" && (
+        <p className="route-panel-status">Recherche de l'adresse…</p>
       )}
       {state.status === "loading" && <p className="route-panel-status">Calcul de l'itinéraire…</p>}
       {state.status === "error" && (
         <p className="route-panel-status status-error">{state.message}</p>
+      )}
+      {state.status === "choosing" && (
+        <ul className="route-panel-address-candidates">
+          {state.candidates.map((candidate) => (
+            <li key={`${candidate.label}-${candidate.coordinates.latitude}-${candidate.coordinates.longitude}`}>
+              <button type="button" onClick={() => handleSelectCandidate(candidate)}>
+                {candidate.label}
+              </button>
+            </li>
+          ))}
+        </ul>
       )}
       {state.status === "success" && (
         <p className="route-panel-status">

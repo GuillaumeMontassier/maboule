@@ -175,3 +175,56 @@
 .route-panel-status {
   margin: 8px 0 0;
 }
+
+.route-panel-divider {
+  margin: 8px 0;
+  text-align: center;
+  color: #6b7280;
+  font-size: 0.85em;
+}
+
+.route-panel-address-form {
+  display: flex;
+  gap: 6px;
+}
+
+.route-panel-address-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+}
+
+.route-panel-address-form button {
+  width: auto;
+  white-space: nowrap;
+}
+
+.route-panel-address-candidates {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  max-height: 160px;
+  overflow-y: auto;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+}
+
+.route-panel-address-candidates li + li {
+  border-top: 1px solid #e5e7eb;
+}
+
+.route-panel-address-candidates button {
+  width: 100%;
+  display: block;
+  text-align: left;
+  padding: 6px 8px;
+  border: none;
+  border-radius: 0;
+  background: none;
+}
+
+.route-panel-address-candidates button:hover {
+  background: #f3f4f6;
+}
