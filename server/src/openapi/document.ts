@@ -4,6 +4,8 @@ import { BoulodromeFeatureCollectionSchema } from "../schemas/boulodromeProperti
 import { boulodromesQuerySchema } from "../schemas/boulodromesQuery";
 import { CafeFeatureCollectionSchema } from "../schemas/cafeProperties";
 import { boulodromeIdParamSchema, cafesNearBoulodromeQuerySchema } from "../schemas/cafesNearBoulodromeQuery";
+import { RouteFeatureSchema } from "../schemas/routeProperties";
+import { routeQuerySchema } from "../schemas/routeQuery";
 
 const registry = new OpenAPIRegistry();
 
@@ -68,6 +70,41 @@ registry.registerPath({
     },
     404: {
       description: "Aucun boulodrome ne correspond à cet identifiant",
+      content: { "application/json": { schema: errorSchema } },
+    },
+    500: {
+      description: "Erreur inattendue côté serveur",
+      content: { "application/json": { schema: errorSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/boulodromes/{id}/route",
+  summary: "Itinéraire à pied entre un point de départ et un boulodrome, au format GeoJSON",
+  description:
+    "Calcule l'itinéraire à pied via OpenRouteService et renvoie une unique Feature GeoJSON de géométrie " +
+    "LineString, avec la distance (mètres) et la durée estimée (secondes) dans les properties.",
+  request: {
+    params: boulodromeIdParamSchema,
+    query: routeQuerySchema,
+  },
+  responses: {
+    200: {
+      description: "Itinéraire calculé entre le point de départ et le boulodrome",
+      content: { "application/json": { schema: RouteFeatureSchema } },
+    },
+    400: {
+      description: "Paramètre de requête invalide (ex. from absent ou mal formé)",
+      content: { "application/json": { schema: validationErrorSchema } },
+    },
+    404: {
+      description: "Boulodrome inconnu, ou aucun itinéraire trouvé entre les deux points",
+      content: { "application/json": { schema: errorSchema } },
+    },
+    502: {
+      description: "OpenRouteService est indisponible, en timeout, ou renvoie une erreur",
       content: { "application/json": { schema: errorSchema } },
     },
     500: {

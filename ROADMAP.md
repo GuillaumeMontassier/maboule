@@ -155,10 +155,40 @@
 
 ## Phase 5 — Itinéraire
 
-- [ ] Intégration d'une API de routing (OSRM self-hosté ou
-      OpenRouteService)
+Spec et découpage en tickets sous `.scratch/itineraire/` (voir
+`docs/agents/issue-tracker.md`) : `spec.md` + 5 tickets
+(`01-route-endpoint`, `02-geocode-endpoint`, `03-destination-search`,
+`04-itinerary-gps`, `05-itinerary-address`). OpenRouteService choisi plutôt
+qu'un OSRM auto-hébergé — voir `docs/adr/0001-openrouteservice-over-self-hosted-osrm.md`.
+
+- [x] Ticket 01 — Endpoint `GET /api/boulodromes/:id/route?from=<lat>,<lng>`
+      — itinéraire piéton via OpenRouteService ; module client dédié
+      (`server/src/routing/openRouteServiceClient.ts`, seule frontière
+      réseau sortante, profil piéton) avec fonctions pures de mapping
+      testées sans mock (`buildDirectionsRequestBody`, `toRouteFeature`) ;
+      validation `from` par schéma Zod (`server/src/schemas/routeQuery.ts`) ;
+      réponse GeoJSON `Feature` unique (pas `FeatureCollection`) de
+      géométrie `LineString`, `distanceMeters`/`durationSeconds` dans les
+      properties (`server/src/schemas/routeProperties.ts`) ; 404
+      boulodrome/itinéraire introuvable, 400 paramètre invalide, 502 si
+      OpenRouteService échoue/time out/quota dépassé (pas de distinction
+      utile avec 503 côté appelant) ; doc OpenAPI
+      (`server/src/openapi/document.ts`) ; clé API lue depuis
+      `ORS_API_KEY` (serveur uniquement) ; tests d'intégration
+      `supertest` (`server/src/app.integration.test.ts`, seul le client
+      ORS mocké) : cas nominal, 404 boulodrome inconnu, 404 aucun
+      itinéraire, 400 `from` absent/invalide, 502 échec fournisseur ;
+      vérifié manuellement (serveur local + curl : cas nominal → 502
+      attendu en local faute de clé API réelle, 404 id inconnu, 400
+      paramètre invalide, `/openapi.json` expose le nouveau path)
+- [ ] Ticket 02 — Endpoint de géocodage `GET /api/geocode?q=<adresse>`
+- [ ] Ticket 03 — Frontend : recherche de boulodrome par mot-clé
+      (destination de l'itinéraire)
+- [ ] Ticket 04 — Frontend : itinéraire depuis la position GPS
+- [ ] Ticket 05 — Frontend : itinéraire depuis une adresse recherchée
 - [ ] Tests unitaires : formatage des requêtes/réponses de l'API de
-      routing (mock de l'appel externe)
+      routing (mock de l'appel externe) — fait pour l'endpoint route
+      (ticket 01, ci-dessus) ; reste à couvrir pour le géocodage (ticket 02)
 
 ## Phase 6 — Contributions utilisateurs
 
