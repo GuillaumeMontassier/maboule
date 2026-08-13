@@ -181,14 +181,56 @@ qu'un OSRM auto-hébergé — voir `docs/adr/0001-openrouteservice-over-self-hos
       vérifié manuellement (serveur local + curl : cas nominal → 502
       attendu en local faute de clé API réelle, 404 id inconnu, 400
       paramètre invalide, `/openapi.json` expose le nouveau path)
-- [ ] Ticket 02 — Endpoint de géocodage `GET /api/geocode?q=<adresse>`
-- [ ] Ticket 03 — Frontend : recherche de boulodrome par mot-clé
-      (destination de l'itinéraire)
-- [ ] Ticket 04 — Frontend : itinéraire depuis la position GPS
+- [x] Ticket 02 — Endpoint de géocodage `GET /api/geocode?q=<adresse>` —
+      module client ORS étendu (`fetchGeocodeCandidates`,
+      `buildGeocodeSearchParams`, `toGeocodeCandidates`,
+      `AddressNotFoundError` dans `server/src/routing/openRouteServiceClient.ts`)
+      ; contrairement aux directions (POST, clé API en en-tête), le
+      géocodage ORS (Pelias) est en GET avec la clé en query param
+      `api_key` — mécanismes d'auth différents documentés en commentaire
+      dans le même module ; "aucun résultat" n'est pas un code d'erreur ORS
+      distinct côté géocodage (200 + liste vide), traduit en 404 côté
+      backend (`AddressNotFoundError`) ; validation `q` (chaîne non vide)
+      via `server/src/schemas/geocodeQuery.ts` ; doc OpenAPI
+      (`server/src/schemas/geocodeCandidate.ts`) ; tests unitaires sans
+      mock sur le formatage/mapping + tests d'intégration `supertest`
+      (cas nominal, plusieurs candidats, 404 aucun résultat, 400 `q`
+      invalide, 502/503 échec fournisseur) ; vérifié manuellement (curl :
+      400 `q` absent/vide, 502 avec clé API locale vide, `/openapi.json`
+      expose `/api/geocode`)
+- [x] Ticket 03 — Frontend : recherche de boulodrome par mot-clé
+      (destination de l'itinéraire) — `client/src/components/BoulodromeSearch.tsx`,
+      recherche déclenchée à la soumission du formulaire (pas au fil de la
+      frappe), branchée sur le paramètre `q` de `GET /api/boulodromes`
+      (backend existant depuis la Phase 3, jusqu'ici non exposé côté
+      frontend) ; sélectionner un résultat réutilise le même chemin qu'un
+      clic sur un marqueur (`onSelectBoulodrome`) ; réponses tardives
+      ignorées via un compteur `latestRequestId` (même principe que le
+      flag `cancelled` du chargement des cafés) ; message clair si aucun
+      résultat ; tests de composant (`BoulodromeSearch.test.tsx`,
+      `BoulodromesMap.test.tsx`, `fetchBoulodromes` mocké)
+- [x] Ticket 04 — Frontend : itinéraire depuis la position GPS — nouveau
+      module `client/src/api/route.ts` (`fetchRoute`, même pattern que
+      `cafes.ts`/`boulodromes.ts`) ; panneau "Itinéraire"
+      (`client/src/components/RoutePanel.tsx`) affiché au boulodrome
+      sélectionné, option "Utiliser ma position" (`navigator.geolocation`)
+      → appel `/route` → tracé dessiné en polyligne Leaflet avec marqueur
+      de départ, distance et durée affichées ; permission GPS refusée,
+      géolocalisation indisponible, ou itinéraire introuvable (404/502/503) :
+      message clair, aucun état cassé ; tracé et panneau retirés à la
+      fermeture du popup ou au changement de boulodrome sélectionné (même
+      discipline de nettoyage que les marqueurs cafés, panneau monté via
+      `key={selectedBoulodromeId}`) ; tests de composant (mock de
+      `fetchRoute`) ; vérifié manuellement en navigateur réel (Playwright,
+      géolocalisation Chromium mockée). Revue via `/code-review` (six
+      agents) : deux bugs corrigés — course entre démontage du panneau et
+      résolution tardive d'une requête GPS/route en vol (ref `isCurrent`
+      avant chaque `onRouteChange`), et une erreur de géolocalisation sur
+      une deuxième demande qui n'effaçait pas le tracé déjà affiché
 - [ ] Ticket 05 — Frontend : itinéraire depuis une adresse recherchée
-- [ ] Tests unitaires : formatage des requêtes/réponses de l'API de
+- [x] Tests unitaires : formatage des requêtes/réponses de l'API de
       routing (mock de l'appel externe) — fait pour l'endpoint route
-      (ticket 01, ci-dessus) ; reste à couvrir pour le géocodage (ticket 02)
+      (ticket 01) et pour le géocodage (ticket 02, ci-dessus)
 
 ## Phase 6 — Contributions utilisateurs
 
