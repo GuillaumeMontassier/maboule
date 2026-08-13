@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { BoulodromesMap } from "./BoulodromesMap";
 import { fetchCafesNearBoulodrome } from "../api/cafes";
 import type { CafesFeatureCollection } from "../api/cafes";
 import { fetchBoulodromes } from "../api/boulodromes";
 import type { BoulodromesFeatureCollection } from "../api/boulodromes";
+import { fetchRoute } from "../api/route";
+import type { RouteFeature } from "../api/route";
 
 vi.mock("../api/cafes", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../api/cafes")>()),
@@ -14,6 +16,11 @@ vi.mock("../api/cafes", async (importOriginal) => ({
 vi.mock("../api/boulodromes", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../api/boulodromes")>()),
   fetchBoulodromes: vi.fn(),
+}));
+
+vi.mock("../api/route", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("../api/route")>()),
+  fetchRoute: vi.fn(),
 }));
 
 const sampleBoulodromes: BoulodromesFeatureCollection = {
@@ -81,10 +88,56 @@ const sampleCafes: CafesFeatureCollection = {
 
 const emptyCafes: CafesFeatureCollection = { type: "FeatureCollection", features: [] };
 
+const sampleRoute: RouteFeature = {
+  type: "Feature",
+  geometry: {
+    type: "LineString",
+    coordinates: [
+      [2.3522, 48.8566],
+      [2.353, 48.857],
+    ],
+  },
+  properties: { distanceMeters: 846, durationSeconds: 639 },
+};
+
+// jsdom n'implemente pas navigator.geolocation - on la simule pour piloter
+// succes/echec depuis les tests, comme on mocke `fetchRoute`/`fetchCafesNearBoulodrome`
+// a la frontiere reseau.
+function stubGeolocation(
+  behavior: (
+    onSuccess: PositionCallback,
+    onError: PositionErrorCallback | undefined,
+  ) => void,
+) {
+  Object.defineProperty(window.navigator, "geolocation", {
+    configurable: true,
+    value: { getCurrentPosition: vi.fn(behavior) },
+  });
+}
+
+function fakePosition(latitude: number, longitude: number): GeolocationPosition {
+  return {
+    coords: {
+      latitude,
+      longitude,
+      accuracy: 10,
+      altitude: null,
+      altitudeAccuracy: null,
+      heading: null,
+      speed: null,
+      toJSON: () => ({}),
+    },
+    timestamp: Date.now(),
+    toJSON: () => ({}),
+  } as GeolocationPosition;
+}
+
 afterEach(() => {
   cleanup();
   vi.mocked(fetchCafesNearBoulodrome).mockReset();
   vi.mocked(fetchBoulodromes).mockReset();
+  vi.mocked(fetchRoute).mockReset();
+  Reflect.deleteProperty(window.navigator, "geolocation");
 });
 
 describe("BoulodromesMap - cafés à proximité", () => {
@@ -195,5 +248,125 @@ describe("BoulodromesMap - recherche par mot-clé", () => {
     // Pas de marqueur pour "data-es:2" -> pas de selection, pas de cafes
     // charges pour un boulodrome invisible sur la carte.
     expect(fetchCafesNearBoulodrome).not.toHaveBeenCalled();
+  });
+});
+
+describe("BoulodromesMap - itinéraire depuis la position GPS", () => {
+  it("demande d'itinéraire depuis la position GPS -> tracé affiché", async () => {
+    vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes);
+    vi.mocked(fetchRoute).mockResolvedValue(sampleRoute);
+    stubGeolocation((onSuccess) => onSuccess(fakePosition(48.85, 2.35)));
+
+    const { container } = render(<BoulodromesMap features={sampleBoulodromes} />);
+    const [marker] = container.querySelectorAll(".leaflet-marker-icon");
+    fireEvent.click(marker);
+
+    const useLocationButton = await screen.findByRole("button", { name: "Utiliser ma position" });
+    fireEvent.click(useLocationButton);
+
+    await waitFor(() =>
+      expect(fetchRoute).toHaveBeenCalledWith("data-es:1", { latitude: 48.85, longitude: 2.35 }),
+    );
+    await waitFor(() => expect(container.querySelector(".route-start-marker")).toBeTruthy());
+    expect(await screen.findByText(/846 m/)).toBeTruthy();
+  });
+
+  it("permission GPS refusée -> message affiché, aucun appel réseau", async () => {
+    vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes);
+    stubGeolocation((_onSuccess, onError) => {
+      onError?.({
+        code: 1,
+        PERMISSION_DENIED: 1,
+        POSITION_UNAVAILABLE: 2,
+        TIMEOUT: 3,
+        message: "denied",
+      } as GeolocationPositionError);
+    });
+
+    const { container } = render(<BoulodromesMap features={sampleBoulodromes} />);
+    const [marker] = container.querySelectorAll(".leaflet-marker-icon");
+    fireEvent.click(marker);
+
+    const useLocationButton = await screen.findByRole("button", { name: "Utiliser ma position" });
+    fireEvent.click(useLocationButton);
+
+    expect(await screen.findByText(/Géolocalisation refusée/)).toBeTruthy();
+    expect(fetchRoute).not.toHaveBeenCalled();
+  });
+
+  it("changement de boulodrome sélectionné -> tracé retiré", async () => {
+    vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes);
+    vi.mocked(fetchRoute).mockResolvedValue(sampleRoute);
+    stubGeolocation((onSuccess) => onSuccess(fakePosition(48.85, 2.35)));
+
+    const { container } = render(<BoulodromesMap features={sampleBoulodromes} />);
+    const markers = container.querySelectorAll(".leaflet-marker-icon");
+
+    fireEvent.click(markers[0]);
+    fireEvent.click(await screen.findByRole("button", { name: "Utiliser ma position" }));
+    await waitFor(() => expect(container.querySelector(".route-start-marker")).toBeTruthy());
+
+    fireEvent.click(markers[1]);
+
+    await waitFor(() => expect(container.querySelector(".route-start-marker")).toBeNull());
+  });
+
+  it("une réponse d'itinéraire tardive pour le boulodrome précédent n'écrase pas la sélection actuelle", async () => {
+    vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes);
+    let resolvePendingRoute: ((route: RouteFeature) => void) | undefined;
+    vi.mocked(fetchRoute).mockImplementationOnce(
+      () => new Promise((resolve) => (resolvePendingRoute = resolve)),
+    );
+    stubGeolocation((onSuccess) => onSuccess(fakePosition(48.85, 2.35)));
+
+    const { container } = render(<BoulodromesMap features={sampleBoulodromes} />);
+    const markers = container.querySelectorAll(".leaflet-marker-icon");
+
+    fireEvent.click(markers[0]);
+    fireEvent.click(await screen.findByRole("button", { name: "Utiliser ma position" }));
+    await waitFor(() =>
+      expect(fetchRoute).toHaveBeenCalledWith("data-es:1", { latitude: 48.85, longitude: 2.35 }),
+    );
+
+    // Changement de boulodrome avant que la requete du premier ne resolve -
+    // le panneau "data-es:1" est demonte (remplace par celui de "data-es:2").
+    fireEvent.click(markers[1]);
+    await waitFor(() => expect(fetchCafesNearBoulodrome).toHaveBeenCalledWith("data-es:2"));
+
+    // La reponse tardive de "data-es:1" ne doit pas redessiner son trace
+    // maintenant que "data-es:2" est selectionne (course entre l'ancienne
+    // instance de RoutePanel et sa reponse reseau en vol).
+    await act(async () => resolvePendingRoute?.(sampleRoute));
+
+    expect(container.querySelector(".route-start-marker")).toBeNull();
+  });
+
+  it("une erreur de géolocalisation après un itinéraire déjà affiché retire le tracé", async () => {
+    vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes);
+    vi.mocked(fetchRoute).mockResolvedValue(sampleRoute);
+    stubGeolocation((onSuccess) => onSuccess(fakePosition(48.85, 2.35)));
+
+    const { container } = render(<BoulodromesMap features={sampleBoulodromes} />);
+    const [marker] = container.querySelectorAll(".leaflet-marker-icon");
+    fireEvent.click(marker);
+
+    const useLocationButton = await screen.findByRole("button", { name: "Utiliser ma position" });
+    fireEvent.click(useLocationButton);
+    await waitFor(() => expect(container.querySelector(".route-start-marker")).toBeTruthy());
+
+    // Deuxieme demande (ex. rafraichissement de position), cette fois en echec.
+    stubGeolocation((_onSuccess, onError) => {
+      onError?.({
+        code: 1,
+        PERMISSION_DENIED: 1,
+        POSITION_UNAVAILABLE: 2,
+        TIMEOUT: 3,
+        message: "denied",
+      } as GeolocationPositionError);
+    });
+    fireEvent.click(useLocationButton);
+
+    await waitFor(() => expect(container.querySelector(".route-start-marker")).toBeNull());
+    expect(await screen.findByText(/Géolocalisation refusée/)).toBeTruthy();
   });
 });

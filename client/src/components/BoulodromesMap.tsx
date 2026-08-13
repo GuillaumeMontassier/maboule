@@ -2,11 +2,13 @@ import "leaflet/dist/leaflet.css";
 import "../leaflet-icon-fix";
 import L from "leaflet";
 import { useEffect, useRef, useState } from "react";
-import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
+import { MapContainer, Marker, Polyline, Popup, TileLayer } from "react-leaflet";
 import { fetchCafesNearBoulodrome } from "../api/cafes";
 import type { CafeAmenityType, CafesFeatureCollection } from "../api/cafes";
 import type { BoulodromesFeatureCollection } from "../api/boulodromes";
+import type { RouteFeature } from "../api/route";
 import { BoulodromeSearch } from "./BoulodromeSearch";
+import { RoutePanel } from "./RoutePanel";
 
 const PARIS_CENTER: [number, number] = [48.8566, 2.3522];
 
@@ -26,6 +28,17 @@ function cafeIcon(amenityType: CafeAmenityType): L.DivIcon {
   });
 }
 
+const routeStartIcon = L.divIcon({
+  className: "route-start-marker",
+  html: "🚶",
+  iconSize: [24, 24],
+});
+
+// GeoJSON = [longitude, latitude], Leaflet = [latitude, longitude].
+function toLatLng([longitude, latitude]: number[]): [number, number] {
+  return [latitude, longitude];
+}
+
 interface BoulodromesMapProps {
   features: BoulodromesFeatureCollection;
 }
@@ -36,6 +49,10 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
   // ouvert a la fois, donc un seul jeu de cafes affiche a la fois).
   const [selectedBoulodromeId, setSelectedBoulodromeId] = useState<string | null>(null);
   const [nearbyCafes, setNearbyCafes] = useState<CafesFeatureCollection | null>(null);
+  // Tracé de l'itinéraire en cours, pilote par RoutePanel (chargement
+  // déclenché par l'utilisateur, contrairement aux cafés qui se chargent
+  // automatiquement à la sélection).
+  const [route, setRoute] = useState<RouteFeature | null>(null);
   // Instances Leaflet des marqueurs boulodromes, pour pouvoir fermer
   // explicitement l'ancien popup au clic sur un nouveau (cf. commentaire sur
   // `autoClose` plus bas).
@@ -82,17 +99,22 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
     marker.openPopup();
   }
 
+  const routePositions: [number, number][] | null =
+    route?.geometry.coordinates.map(toLatLng) ?? null;
+  const routeStartPosition = routePositions?.[0] ?? null;
+
   return (
     <>
       <BoulodromeSearch onSelectBoulodrome={selectBoulodrome} />
+      {selectedBoulodromeId && (
+        <RoutePanel key={selectedBoulodromeId} boulodromeId={selectedBoulodromeId} onRouteChange={setRoute} />
+      )}
       <MapContainer center={PARIS_CENTER} zoom={12} className="map">
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         {features.features.map((feature) => {
-          // GeoJSON = [longitude, latitude], Leaflet = [latitude, longitude].
-          const [longitude, latitude] = feature.geometry.coordinates;
           const id = feature.properties.id;
           return (
             <Marker
@@ -101,7 +123,7 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
                 if (marker) boulodromeMarkers.current.set(id, marker);
                 else boulodromeMarkers.current.delete(id);
               }}
-              position={[latitude, longitude]}
+              position={toLatLng(feature.geometry.coordinates)}
               eventHandlers={{
                 // `selectBoulodrome` gere elle-meme la fermeture explicite de
                 // l'ancien popup (necessaire car `autoClose` est desactive
@@ -158,11 +180,10 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
           );
         })}
         {nearbyCafes?.features.map((cafe) => {
-          const [longitude, latitude] = cafe.geometry.coordinates;
           return (
             <Marker
               key={cafe.properties.id}
-              position={[latitude, longitude]}
+              position={toLatLng(cafe.geometry.coordinates)}
               icon={cafeIcon(cafe.properties.amenityType)}
             >
               <Popup>
@@ -181,6 +202,12 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
             </Marker>
           );
         })}
+        {routePositions && routeStartPosition && (
+          <>
+            <Polyline positions={routePositions} />
+            <Marker position={routeStartPosition} icon={routeStartIcon} />
+          </>
+        )}
       </MapContainer>
     </>
   );
