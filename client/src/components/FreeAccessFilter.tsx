@@ -12,7 +12,7 @@ export function FreeAccessFilter({ value, onChange }: FreeAccessFilterProps) {
   }
 
   return (
-    <label className="checkbox-filter">
+    <label className="flex flex-col gap-1 rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm">
       Accès
       <select value={value === undefined ? "" : String(value)} onChange={handleChange}>
         <option value="">Tous</option>

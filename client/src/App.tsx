@@ -29,7 +29,7 @@ function App() {
 
   return (
     <>
-      <div className="filters-bar">
+      <div className="fixed top-14 left-1/2 z-[1000] flex w-[280px] -translate-x-1/2 flex-col gap-2 text-sm md:top-3 md:left-[300px] md:w-auto md:translate-x-0">
         <CheckboxFilter
           legend="Nature du sol"
           options={GROUND_TYPES}
