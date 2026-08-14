@@ -2,7 +2,7 @@ import "leaflet/dist/leaflet.css";
 import "../leaflet-icon-fix";
 import L from "leaflet";
 import { useEffect, useRef, useState } from "react";
-import { MapContainer, Marker, Polyline, Popup, TileLayer } from "react-leaflet";
+import { MapContainer, Marker, Polyline, Popup, TileLayer, ZoomControl } from "react-leaflet";
 import { fetchCafesNearBoulodrome } from "../api/cafes";
 import type { CafeAmenityType, CafesFeatureCollection } from "../api/cafes";
 import type { BoulodromesFeatureCollection } from "../api/boulodromes";
@@ -131,11 +131,15 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
       {selectedBoulodromeId && (
         <RoutePanel key={selectedBoulodromeId} boulodromeId={selectedBoulodromeId} onRouteChange={setRoute} />
       )}
-      <MapContainer ref={mapRef} center={PARIS_CENTER} zoom={12} className="map">
+      <MapContainer ref={mapRef} center={PARIS_CENTER} zoom={12} zoomControl={false} className="map">
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
+        {/* Repositionne les boutons de zoom en bas a droite (ticket 07),
+            hors de leur emplacement Leaflet par defaut (haut a gauche) qui
+            chevauchait la barre de recherche. */}
+        <ZoomControl position="bottomright" />
         {features.features.map((feature) => {
           const id = feature.properties.id;
           return (
