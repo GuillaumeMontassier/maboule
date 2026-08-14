@@ -57,6 +57,9 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
   // explicitement l'ancien popup au clic sur un nouveau (cf. commentaire sur
   // `autoClose` plus bas).
   const boulodromeMarkers = useRef(new Map<string, L.Marker>());
+  // Instance Leaflet de la carte, pour piloter le recentrage (`flyTo`) au
+  // clic sur un marqueur ou a la selection d'un resultat de recherche.
+  const mapRef = useRef<L.Map | null>(null);
 
   useEffect(() => {
     if (!selectedBoulodromeId) {
@@ -97,6 +100,17 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
     }
     setSelectedBoulodromeId(id);
     marker.openPopup();
+
+    // Recentrage anime plutot qu'un saut instantane. Appeler `flyTo` alors
+    // qu'une animation precedente est encore en cours ne pose pas de
+    // probleme : Leaflet l'interrompt lui-meme en debut d'appel avant de
+    // demarrer la nouvelle.
+    const map = mapRef.current;
+    if (map) {
+      const currentZoom = map.getZoom();
+      const targetZoom = currentZoom >= 15 ? currentZoom : 16;
+      map.flyTo(marker.getLatLng(), targetZoom);
+    }
   }
 
   const routePositions: [number, number][] | null =
@@ -109,7 +123,7 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
       {selectedBoulodromeId && (
         <RoutePanel key={selectedBoulodromeId} boulodromeId={selectedBoulodromeId} onRouteChange={setRoute} />
       )}
-      <MapContainer center={PARIS_CENTER} zoom={12} className="map">
+      <MapContainer ref={mapRef} center={PARIS_CENTER} zoom={12} className="map">
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"

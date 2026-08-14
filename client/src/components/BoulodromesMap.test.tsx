@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import L from "leaflet";
 import { BoulodromesMap } from "./BoulodromesMap";
 import { fetchCafesNearBoulodrome } from "../api/cafes";
 import type { CafesFeatureCollection } from "../api/cafes";
@@ -465,5 +466,97 @@ describe("BoulodromesMap - itinéraire depuis une adresse recherchée", () => {
 
     await screen.findByRole("button", { name: /69001 Lyon/ });
     expect(container.querySelector(".route-start-marker")).toBeNull();
+  });
+});
+
+describe("BoulodromesMap - recentrage automatique", () => {
+  // `flyTo` retombe sur un `setView` synchrone en l'absence de support
+  // CSS3D (cas de jsdom) - pas besoin d'attendre une animation dans les
+  // tests, seuls les arguments de l'appel nous interessent ici.
+  it("clique sur un marqueur -> anime la carte (flyTo) vers ses coordonnées avec le zoom monté à 16", async () => {
+    vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes);
+    const flyToSpy = vi.spyOn(L.Map.prototype, "flyTo");
+
+    const { container } = render(<BoulodromesMap features={sampleBoulodromes} />);
+    const [marker] = container.querySelectorAll(".leaflet-marker-icon");
+    fireEvent.click(marker);
+
+    await waitFor(() => expect(flyToSpy).toHaveBeenCalledTimes(1));
+    const [latlng, zoom] = flyToSpy.mock.calls[0];
+    expect((latlng as L.LatLng).lat).toBeCloseTo(48.8566);
+    expect((latlng as L.LatLng).lng).toBeCloseTo(2.3522);
+    // Zoom initial de la carte (12) < 15 -> monte a 16.
+    expect(zoom).toBe(16);
+
+    flyToSpy.mockRestore();
+  });
+
+  it("conserve le zoom courant s'il est déjà >= 15 lors du recentrage", async () => {
+    vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes);
+    const flyToSpy = vi.spyOn(L.Map.prototype, "flyTo");
+
+    const { container } = render(<BoulodromesMap features={sampleBoulodromes} />);
+    const markers = container.querySelectorAll(".leaflet-marker-icon");
+
+    // Zoom initial 12 -> 15 via les boutons de zoom (le controle de zoom par
+    // defaut de Leaflet, encore en place pour cette phase - repositionne au
+    // ticket 07).
+    const zoomInButton = container.querySelector<HTMLElement>(".leaflet-control-zoom-in");
+    if (!zoomInButton) throw new Error("bouton zoom-in introuvable");
+    fireEvent.click(zoomInButton);
+    fireEvent.click(zoomInButton);
+    fireEvent.click(zoomInButton);
+
+    fireEvent.click(markers[0]);
+
+    await waitFor(() => expect(flyToSpy).toHaveBeenCalledTimes(1));
+    const [, zoom] = flyToSpy.mock.calls[0];
+    expect(zoom).toBe(15);
+
+    flyToSpy.mockRestore();
+  });
+
+  it("sélectionner un boulodrome depuis la recherche déclenche le même recentrage qu'un clic sur son marqueur", async () => {
+    vi.mocked(fetchBoulodromes).mockResolvedValue(sampleBoulodromes);
+    vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes);
+    const flyToSpy = vi.spyOn(L.Map.prototype, "flyTo");
+
+    render(<BoulodromesMap features={sampleBoulodromes} />);
+
+    fireEvent.change(screen.getByLabelText("Rechercher un boulodrome"), {
+      target: { value: "autre" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Rechercher" }));
+    const result = await screen.findByRole("button", { name: /AUTRE TERRAIN/ });
+    fireEvent.click(result);
+
+    await waitFor(() => expect(flyToSpy).toHaveBeenCalledTimes(1));
+    const [latlng, zoom] = flyToSpy.mock.calls[0];
+    expect((latlng as L.LatLng).lat).toBeCloseTo(48.86);
+    expect((latlng as L.LatLng).lng).toBeCloseTo(2.36);
+    expect(zoom).toBe(16);
+
+    flyToSpy.mockRestore();
+  });
+
+  it("changer de boulodrome sélectionné pendant qu'une animation est en cours ne laisse pas la carte dans un état incohérent", async () => {
+    vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes);
+    const flyToSpy = vi.spyOn(L.Map.prototype, "flyTo");
+
+    const { container } = render(<BoulodromesMap features={sampleBoulodromes} />);
+    const markers = container.querySelectorAll(".leaflet-marker-icon");
+
+    // Deuxieme clic avant meme d'attendre la resolution du premier - Leaflet
+    // interrompt lui-meme l'animation en cours au debut de chaque `flyTo`.
+    fireEvent.click(markers[0]);
+    fireEvent.click(markers[1]);
+
+    await waitFor(() => expect(flyToSpy).toHaveBeenCalledTimes(2));
+    const [lastLatLng] = flyToSpy.mock.calls[1];
+    expect((lastLatLng as L.LatLng).lat).toBeCloseTo(48.86);
+    expect((lastLatLng as L.LatLng).lng).toBeCloseTo(2.36);
+    expect(await screen.findByText(/75002/)).toBeTruthy();
+
+    flyToSpy.mockRestore();
   });
 });
