@@ -251,6 +251,13 @@ professionnel. Cette phase reprend et raffine des éléments déjà posés dans
 les phases précédentes (recherche, filtres, icônes cafés/bars) plutôt que
 d'ajouter de nouvelles fonctionnalités métier.
 
+Décisions détaillées sous `.scratch/phase-6-ui-ux/spec.md` (issue d'une
+session `/grill-with-docs`) — migration vers Tailwind CSS choisie comme
+fondation commune pour le responsive, le dark mode et cette refonte, voir
+`docs/adr/0002-tailwind-for-phase-6-refonte.md`. Deux points restent
+explicitement en attente d'une future session : la sémantique exacte du
+bouton "Itinéraire" et le choix du fond de carte en dark mode.
+
 **Barre de recherche**
 - [ ] Repositionnement : centrée en mobile, alignée à gauche en desktop
 - [ ] Affichage de l'historique de recherche au focus (avant toute saisie)
