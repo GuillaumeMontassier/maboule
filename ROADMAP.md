@@ -259,7 +259,7 @@ explicitement en attente d'une future session : la sémantique exacte du
 bouton "Itinéraire" et le choix du fond de carte en dark mode.
 
 **Barre de recherche**
-- [ ] Repositionnement : centrée en mobile, alignée à gauche en desktop
+- [x] Repositionnement : centrée en mobile, alignée à gauche en desktop
 - [ ] Affichage de l'historique de recherche au focus (avant toute saisie)
 - [ ] Résultats en temps réel à chaque caractère saisi (debounce à prévoir
       côté implémentation pour éviter une requête par lettre)
