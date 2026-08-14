@@ -156,6 +156,7 @@ afterEach(() => {
   vi.mocked(fetchRoute).mockReset();
   vi.mocked(fetchGeocodeCandidates).mockReset();
   Reflect.deleteProperty(window.navigator, "geolocation");
+  window.localStorage.clear();
 });
 
 describe("BoulodromesMap - cafés à proximité", () => {
@@ -262,6 +263,71 @@ describe("BoulodromesMap - recherche par mot-clé", () => {
     // Pas de marqueur pour "data-es:2" -> pas de selection, pas de cafes
     // charges pour un boulodrome invisible sur la carte.
     expect(fetchCafesNearBoulodrome).not.toHaveBeenCalled();
+  });
+});
+
+describe("BoulodromesMap - historique de recherche", () => {
+  it("sélectionner un boulodrome via son marqueur alimente l'historique affiché au focus du champ de recherche", async () => {
+    vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes);
+
+    const { container } = render(<BoulodromesMap features={sampleBoulodromes} />);
+    const [marker] = container.querySelectorAll(".leaflet-marker-icon");
+    fireEvent.click(marker);
+    await waitFor(() => expect(fetchCafesNearBoulodrome).toHaveBeenCalledWith("data-es:1"));
+
+    const input = screen.getByLabelText("Rechercher un boulodrome");
+    fireEvent.focus(input);
+
+    expect(screen.getByRole("button", { name: "TERRAIN DE PETANQUE" })).toBeTruthy();
+  });
+
+  it("sélectionner un boulodrome via la recherche alimente aussi l'historique", async () => {
+    vi.mocked(fetchBoulodromes).mockResolvedValue(sampleBoulodromes);
+    vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes);
+
+    render(<BoulodromesMap features={sampleBoulodromes} />);
+
+    const input = screen.getByLabelText("Rechercher un boulodrome");
+    fireEvent.change(input, { target: { value: "autre" } });
+    const result = await screen.findByRole("button", { name: /AUTRE TERRAIN/ });
+    fireEvent.click(result);
+    await waitFor(() => expect(fetchCafesNearBoulodrome).toHaveBeenCalledWith("data-es:2"));
+
+    fireEvent.change(input, { target: { value: "" } });
+    fireEvent.focus(input);
+
+    expect(screen.getByRole("button", { name: "AUTRE TERRAIN" })).toBeTruthy();
+  });
+
+  it("cliquer une entrée de l'historique sélectionne directement ce boulodrome sur la carte", async () => {
+    vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes);
+
+    const { container } = render(<BoulodromesMap features={sampleBoulodromes} />);
+    const markers = container.querySelectorAll(".leaflet-marker-icon");
+    fireEvent.click(markers[0]);
+    await waitFor(() => expect(fetchCafesNearBoulodrome).toHaveBeenCalledWith("data-es:1"));
+
+    const input = screen.getByLabelText("Rechercher un boulodrome");
+    fireEvent.focus(input);
+    fireEvent.click(screen.getByRole("button", { name: "TERRAIN DE PETANQUE" }));
+
+    await waitFor(() => expect(fetchCafesNearBoulodrome).toHaveBeenCalledWith("data-es:1"));
+    expect(await screen.findByText(/75001/)).toBeTruthy();
+  });
+
+  it("l'historique persiste entre deux montages du composant (rechargement de page)", async () => {
+    vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes);
+
+    const { container, unmount } = render(<BoulodromesMap features={sampleBoulodromes} />);
+    const [marker] = container.querySelectorAll(".leaflet-marker-icon");
+    fireEvent.click(marker);
+    await waitFor(() => expect(fetchCafesNearBoulodrome).toHaveBeenCalledWith("data-es:1"));
+    unmount();
+
+    render(<BoulodromesMap features={sampleBoulodromes} />);
+    fireEvent.focus(screen.getByLabelText("Rechercher un boulodrome"));
+
+    expect(screen.getByRole("button", { name: "TERRAIN DE PETANQUE" })).toBeTruthy();
   });
 });
 

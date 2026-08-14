@@ -115,6 +115,64 @@ describe("BoulodromeSearch", () => {
     expect(screen.getByText("VINCENNES")).toBeTruthy();
   });
 
+  it("affiche l'historique au focus du champ vide", () => {
+    const history = [
+      { id: "data-es:2", name: "VINCENNES" },
+      { id: "data-es:1", name: "ARSENAL" },
+    ];
+
+    render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} history={history} />);
+    const input = screen.getByLabelText("Rechercher un boulodrome");
+
+    expect(screen.queryByText("VINCENNES")).toBeNull();
+
+    fireEvent.focus(input);
+
+    expect(screen.getByText("VINCENNES")).toBeTruthy();
+    expect(screen.getByText("ARSENAL")).toBeTruthy();
+  });
+
+  it("n'affiche pas l'historique une fois qu'une saisie est en cours", () => {
+    const history = [{ id: "data-es:1", name: "ARSENAL" }];
+
+    render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} history={history} />);
+    const input = screen.getByLabelText("Rechercher un boulodrome");
+
+    fireEvent.focus(input);
+    expect(screen.getByText("ARSENAL")).toBeTruthy();
+
+    fireEvent.change(input, { target: { value: "a" } });
+
+    expect(screen.queryByText("ARSENAL")).toBeNull();
+  });
+
+  it("masque l'historique si le champ vide perd le focus", () => {
+    const history = [{ id: "data-es:1", name: "ARSENAL" }];
+
+    render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} history={history} />);
+    const input = screen.getByLabelText("Rechercher un boulodrome");
+
+    fireEvent.focus(input);
+    expect(screen.getByText("ARSENAL")).toBeTruthy();
+
+    fireEvent.blur(input);
+
+    expect(screen.queryByText("ARSENAL")).toBeNull();
+  });
+
+  it("cliquer une entrée de l'historique sélectionne directement ce boulodrome", () => {
+    const history = [{ id: "data-es:1", name: "ARSENAL" }];
+    const onSelectBoulodrome = vi.fn();
+
+    render(<BoulodromeSearch onSelectBoulodrome={onSelectBoulodrome} history={history} />);
+    const input = screen.getByLabelText("Rechercher un boulodrome");
+
+    fireEvent.focus(input);
+    fireEvent.click(screen.getByRole("button", { name: "ARSENAL" }));
+
+    expect(onSelectBoulodrome).toHaveBeenCalledExactlyOnceWith("data-es:1");
+  });
+
   it("Entrée sélectionne directement le premier résultat affiché", async () => {
     vi.mocked(fetchBoulodromes).mockResolvedValue({
       type: "FeatureCollection",

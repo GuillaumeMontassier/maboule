@@ -9,6 +9,7 @@ import type { BoulodromesFeatureCollection } from "../api/boulodromes";
 import type { RouteFeature } from "../api/route";
 import { BoulodromeSearch } from "./BoulodromeSearch";
 import { RoutePanel } from "./RoutePanel";
+import { useBoulodromeHistory } from "../hooks/use-boulodrome-history";
 
 const PARIS_CENTER: [number, number] = [48.8566, 2.3522];
 
@@ -60,6 +61,7 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
   // Instance Leaflet de la carte, pour piloter le recentrage (`flyTo`) au
   // clic sur un marqueur ou a la selection d'un resultat de recherche.
   const mapRef = useRef<L.Map | null>(null);
+  const { history, addToHistory } = useBoulodromeHistory();
 
   useEffect(() => {
     if (!selectedBoulodromeId) {
@@ -101,6 +103,12 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
     setSelectedBoulodromeId(id);
     marker.openPopup();
 
+    // Alimente l'historique quel que soit le moyen de selection (marqueur,
+    // recherche, historique lui-meme) puisqu'ils passent tous par cette
+    // fonction.
+    const feature = features.features.find((candidate) => candidate.properties.id === id);
+    if (feature) addToHistory({ id, name: feature.properties.name });
+
     // Recentrage anime plutot qu'un saut instantane. Appeler `flyTo` alors
     // qu'une animation precedente est encore en cours ne pose pas de
     // probleme : Leaflet l'interrompt lui-meme en debut d'appel avant de
@@ -119,7 +127,7 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
 
   return (
     <>
-      <BoulodromeSearch onSelectBoulodrome={selectBoulodrome} />
+      <BoulodromeSearch onSelectBoulodrome={selectBoulodrome} history={history} />
       {selectedBoulodromeId && (
         <RoutePanel key={selectedBoulodromeId} boulodromeId={selectedBoulodromeId} onRouteChange={setRoute} />
       )}
