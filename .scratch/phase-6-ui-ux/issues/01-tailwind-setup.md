@@ -4,9 +4,22 @@
 
 **Blocked by:** Aucun — peut démarrer immédiatement
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Une classe utilitaire Tailwind appliquée à un élément produit son effet visuel dans l'app
-- [ ] Le mode sombre est configuré en stratégie "classe" (pas seulement `prefers-color-scheme`), prêt pour le futur bouton de bascule
-- [ ] Le CSS existant (`App.css` et les classes qu'il définit) continue de fonctionner sans régression visuelle
-- [ ] `npm run build` et `npm run test` passent toujours dans `client/`
+- [x] Une classe utilitaire Tailwind appliquée à un élément produit son effet visuel dans l'app —
+      vérifié en navigateur (dev server) : classe temporaire appliquée à `.filters-bar` dans
+      `App.tsx`, effet visuel confirmé, puis retirée (ticket fondation, pas de migration de
+      composant)
+- [x] Le mode sombre est configuré en stratégie "classe" (pas seulement `prefers-color-scheme`), prêt pour le futur bouton de bascule —
+      `@custom-variant dark (&:where(.dark, .dark *));` dans `client/src/index.css` (approche
+      Tailwind v4, remplace le `darkMode: 'class'` de `tailwind.config.js` en v3) ; vérifié en
+      navigateur en togglant `.dark` sur `<html>` via la console — la couleur `dark:` s'applique
+      et se retire correctement
+- [x] Le CSS existant (`App.css` et les classes qu'il définit) continue de fonctionner sans régression visuelle —
+      vérifié visuellement (dev server) : cards de filtres (fond blanc, bordure, ombre) inchangées
+- [x] `npm run build` et `npm run test` passent toujours dans `client/` — build OK, 30/30 tests
+      passent
+
+Mis en œuvre : `@tailwindcss/vite` + `tailwindcss` en devDependencies, plugin ajouté à
+`client/vite.config.ts`, entrée `@import "tailwindcss";` dans `client/src/index.css`. Ajout de
+`.claude/launch.json` pour prévisualiser le serveur de dev.
