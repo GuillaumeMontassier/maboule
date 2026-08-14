@@ -266,7 +266,7 @@ bouton "Itinéraire" et le choix du fond de carte en dark mode.
 - [ ] Touche "Entrée" sélectionne le premier résultat de la liste
 
 **Sélection d'un lieu**
-- [ ] Recentrage automatique de la carte sur l'élément sélectionné
+- [x] Recentrage automatique de la carte sur l'élément sélectionné
 - [ ] Ajout d'un bouton "Itinéraire" dans la card du lieu, qui active le
       mode itinéraire de l'app et place le focus dans le champ "point de
       départ"
