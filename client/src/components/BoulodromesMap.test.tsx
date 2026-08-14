@@ -202,7 +202,6 @@ describe("BoulodromesMap - recherche par mot-clé", () => {
     fireEvent.change(screen.getByLabelText("Rechercher un boulodrome"), {
       target: { value: "arsenal" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Rechercher" }));
 
     await waitFor(() => expect(fetchBoulodromes).toHaveBeenCalledWith({ search: "arsenal" }));
     expect(await screen.findByText("AUTRE TERRAIN")).toBeTruthy();
@@ -217,7 +216,6 @@ describe("BoulodromesMap - recherche par mot-clé", () => {
     fireEvent.change(screen.getByLabelText("Rechercher un boulodrome"), {
       target: { value: "autre" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Rechercher" }));
 
     const result = await screen.findByRole("button", { name: /AUTRE TERRAIN/ });
     fireEvent.click(result);
@@ -238,7 +236,6 @@ describe("BoulodromesMap - recherche par mot-clé", () => {
     fireEvent.change(screen.getByLabelText("Rechercher un boulodrome"), {
       target: { value: "inexistant" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Rechercher" }));
 
     expect(await screen.findByText("Aucun boulodrome trouvé.")).toBeTruthy();
   });
@@ -258,7 +255,6 @@ describe("BoulodromesMap - recherche par mot-clé", () => {
     fireEvent.change(screen.getByLabelText("Rechercher un boulodrome"), {
       target: { value: "autre" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Rechercher" }));
 
     const result = await screen.findByRole("button", { name: /AUTRE TERRAIN/ });
     fireEvent.click(result);
@@ -526,7 +522,6 @@ describe("BoulodromesMap - recentrage automatique", () => {
     fireEvent.change(screen.getByLabelText("Rechercher un boulodrome"), {
       target: { value: "autre" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Rechercher" }));
     const result = await screen.findByRole("button", { name: /AUTRE TERRAIN/ });
     fireEvent.click(result);
 

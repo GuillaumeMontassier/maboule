@@ -261,9 +261,9 @@ bouton "Itinéraire" et le choix du fond de carte en dark mode.
 **Barre de recherche**
 - [x] Repositionnement : centrée en mobile, alignée à gauche en desktop
 - [ ] Affichage de l'historique de recherche au focus (avant toute saisie)
-- [ ] Résultats en temps réel à chaque caractère saisi (debounce à prévoir
+- [x] Résultats en temps réel à chaque caractère saisi (debounce à prévoir
       côté implémentation pour éviter une requête par lettre)
-- [ ] Touche "Entrée" sélectionne le premier résultat de la liste
+- [x] Touche "Entrée" sélectionne le premier résultat de la liste
 
 **Sélection d'un lieu**
 - [x] Recentrage automatique de la carte sur l'élément sélectionné
