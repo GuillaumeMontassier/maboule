@@ -1,3 +1,9 @@
+@import "tailwindcss";
+
+/* Stratégie "classe" plutôt que le défaut Tailwind v4 (prefers-color-scheme) :
+   le futur bouton de bascule dark mode posera/retirera .dark sur <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   color-scheme: light dark;
 }
