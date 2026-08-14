@@ -6,10 +6,6 @@ basée sur l'open data de la Ville de Paris. Objectif double : produire un
 outil utilisable, ET monter en compétence sur des technos que je maîtrise
 moins bien (PostgreSQL/PostGIS, React).
 
-Je suis développeur fullstack confirmé (stack principale : Vue.js, TypeScript,
-Python, MongoDB) mais je découvre ici React et PostgreSQL/PostGIS. Merci de
-garder ça en tête.
-
 ## Stack technique
 - **Frontend** : React + TypeScript, carte via Leaflet ou MapLibre GL
 - **Backend** : Node.js / Express
@@ -133,6 +129,12 @@ demandé — on avance phase par phase.
 
 Issues et specs vivent sous forme de fichiers markdown locaux dans
 `.scratch/`. Voir `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Labels canoniques par défaut (`needs-triage`, `needs-info`,
+`ready-for-agent`, `ready-for-human`, `wontfix`). Voir
+`docs/agents/triage-labels.md`.
 
 ### Domain docs
 

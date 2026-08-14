@@ -7,7 +7,7 @@
 
 ## Statut
 
-**Phase actuelle : Phase 5 — Itinéraire** (Phase 4 terminée)
+**Phase actuelle : Phase 6 — Refonte UI/UX (interface professionnelle)** (Phase 5 terminée)
 
 ---
 
@@ -227,53 +227,73 @@ qu'un OSRM auto-hébergé — voir `docs/adr/0001-openrouteservice-over-self-hos
       résolution tardive d'une requête GPS/route en vol (ref `isCurrent`
       avant chaque `onRouteChange`), et une erreur de géolocalisation sur
       une deuxième demande qui n'effaçait pas le tracé déjà affiché
-- [ ] Ticket 05 — Frontend : itinéraire depuis une adresse recherchée
+- [x] Ticket 05 — Frontend : itinéraire depuis une adresse recherchée —
+      champ adresse dans `RoutePanel.tsx`, géocodage via
+      `client/src/api/geocode.ts` (`fetchGeocodeCandidates`,
+      `GET /api/geocode`) ; un seul candidat → itinéraire calculé
+      directement, plusieurs candidats → liste de choix affichée ; flux GPS
+      et flux adresse convergent vers `requestRoute` (point de départ en
+      coordonnées) pour partager la gestion de l'état
+      (loading/succès/erreur) ; timeout de 10s ajouté sur la géolocalisation
+      (son absence bloquait aussi le repli par adresse, le formulaire étant
+      désactivé tant que `busy`) ; tracé effacé en cas de nouvelle recherche
+      d'adresse ou d'échec, pour éviter un désaccord entre le panneau et la
+      carte ; tests de composant (`BoulodromesMap.test.tsx`)
 - [x] Tests unitaires : formatage des requêtes/réponses de l'API de
       routing (mock de l'appel externe) — fait pour l'endpoint route
       (ticket 01) et pour le géocodage (ticket 02, ci-dessus)
 
-## Phase 6 — Contributions utilisateurs
+## Phase 6 — Refonte UI/UX (interface professionnelle)
+
+Objectif : faire passer l'app d'un prototype fonctionnel à une interface
+soignée, cohérente entre desktop et mobile, avec un niveau de finition
+professionnel. Cette phase reprend et raffine des éléments déjà posés dans
+les phases précédentes (recherche, filtres, icônes cafés/bars) plutôt que
+d'ajouter de nouvelles fonctionnalités métier.
+
+**Barre de recherche**
+- [ ] Repositionnement : centrée en mobile, alignée à gauche en desktop
+- [ ] Affichage de l'historique de recherche au focus (avant toute saisie)
+- [ ] Résultats en temps réel à chaque caractère saisi (debounce à prévoir
+      côté implémentation pour éviter une requête par lettre)
+- [ ] Touche "Entrée" sélectionne le premier résultat de la liste
+
+**Sélection d'un lieu**
+- [ ] Recentrage automatique de la carte sur l'élément sélectionné
+- [ ] Ajout d'un bouton "Itinéraire" dans la card du lieu, qui active le
+      mode itinéraire de l'app et place le focus dans le champ "point de
+      départ"
+
+**Filtres**
+- [ ] Repositionnement desktop : à côté de la barre de recherche
+- [ ] Repositionnement mobile : sous la barre de recherche
+
+**Contrôles de carte**
+- [ ] Déplacement des boutons zoom (+/-) en bas à droite de l'écran
+
+**Icônes**
+- [ ] Harmonisation des icônes piéton/café/bar/pub : un point avec contour
+      blanc, la couleur variant selon le type d'établissement (au lieu des
+      icônes actuelles hétérogènes)
+
+**Mise en page générale**
+- [ ] Audit et correction des chevauchements entre panneaux (recherche,
+      filtres, popups, contrôles de zoom) sur toutes les tailles d'écran
+
+**Dark mode**
+- [ ] Mise en place d'un mode sombre (palette, fond de carte adapté,
+      contraste des icônes et popups)
+
+**Tests**
+- [ ] Tests unitaires/composants sur le nouveau comportement de recherche
+      (debounce, sélection au clavier, historique)
+
+## Phase 7 — Contributions utilisateurs
 
 - [ ] Formulaire de suggestion (ajout/modification de boulodrome ou café)
 - [ ] Table de modération pour les suggestions en attente
 - [ ] Tests unitaires : validation des données soumises, logique de
       modération
-
-## Phase 7 — Refonte graphique (interface façon Google Maps)
-
-Phase transverse, indépendante des phases de données ci-dessus — peut être
-réordonnée plus tôt si l'envie de polish visuel prend le pas sur les
-prochaines fonctionnalités.
-
-- [ ] Migrer vers Tailwind CSS (à la place du CSS ad hoc actuel dans
-      `App.css`) — envisagé comme base commune pour le dark mode (variant
-      `dark:`), le responsive (breakpoints utilitaires) et la refonte
-      visuelle ci-dessous, plutôt que d'empiler ces trois chantiers sur des
-      styles écrits à la main
-- [ ] Migrer la carte de Leaflet (tuiles raster) vers MapLibre GL JS (tuiles
-      vectorielles) : rendu plus fluide, style personnalisable — déjà
-      envisagé dans le choix de stack initial (`CLAUDE.md`)
-- [ ] Choisir un fond de carte proche de Google Maps (ex. style MapTiler
-      "Streets" ou CARTO Positron/Voyager) — vérifier quotas gratuits/clé API
-      ; prévoir une variante de style sombre pour le dark mode
-- [ ] Clustering des marqueurs en dé-zoomant (nativement supporté par les
-      sources GeoJSON de MapLibre)
-- [ ] Redesign des fiches boulodrome (carte flottante façon Google Maps au
-      lieu du popup Leaflet par défaut)
-- [ ] Redesign des contrôles (zoom, géolocalisation) en boutons flottants
-- [ ] Dark mode : thème clair/sombre avec bascule manuelle, valeur initiale
-      basée sur `prefers-color-scheme`, choix persisté (ex. `localStorage`)
-- [ ] Affichage mobile amélioré : barre de filtres actuelle (fixe en haut à
-      droite) repensée en drawer/bottom-sheet sur petit écran, fiches
-      boulodrome et contrôles adaptés au tactile, vérification sur
-      quelques breakpoints clés
-- [ ] Internationalisation FR/EN : sélecteur de langue, traduction des
-      libellés UI (filtres, popups, messages de statut/erreur) — choisir une
-      lib i18n (ex. react-i18next) ou une solution plus légère selon le
-      volume de texte à couvrir
-- [ ] Tests unitaires : adapter les tests existants sur `BoulodromesMap` à
-      la nouvelle API cartographique, et couvrir les nouveaux comportements
-      (bascule dark mode, changement de langue, layout responsive)
 
 ---
 
