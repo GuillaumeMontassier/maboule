@@ -10,8 +10,13 @@ import type { RouteFeature } from "../api/route";
 import { BoulodromeSearch } from "./BoulodromeSearch";
 import { RoutePanel } from "./RoutePanel";
 import { useBoulodromeHistory } from "../hooks/use-boulodrome-history";
+import { ROUTE_PANEL_LAYOUT } from "../constants/routePanelLayout";
 
 const PARIS_CENTER: [number, number] = [48.8566, 2.3522];
+
+// Chrome pilule partage par les badges de contenu de popup (acces libre/payant,
+// distance des cafes) - seule la couleur varie entre usages.
+const POPUP_BADGE_CLASS = "mt-1 inline-block rounded-full px-2 py-0.5 text-[0.85em] font-semibold";
 
 // Point colore a contour blanc, commun aux 4 types (pieton/cafe/bar/pub) ;
 // seule la couleur varie. Classes Tailwind completes et statiques (pas de
@@ -41,6 +46,21 @@ const routeStartIcon = L.divIcon({
   html: dotMarkerHtml("bg-blue-600"),
   iconSize: [24, 24],
 });
+
+// Le RoutePanel (bas-gauche) est un overlay React positionne par-dessus la
+// carte, invisible du mecanisme d'auto-pan de Leaflet - sans ce reglage, un
+// popup ouvert pres du bord bas-gauche peut se retrouver visuellement sous le
+// panneau (z-index plus eleve) plutot que d'etre repousse par l'auto-pan.
+// Leaflet ne reserve que des marges rectangulaires depuis chaque bord (pas un
+// rectangle arbitraire dans un coin) : on reserve donc une marge large a la
+// fois a gauche et en bas, calculee a partir de `ROUTE_PANEL_LAYOUT` (source
+// commune avec les classes Tailwind du panneau) plutot que sur des constantes
+// deconnectees.
+const POPUP_AUTOPAN_PADDING_TOP_LEFT: L.PointExpression = [
+  ROUTE_PANEL_LAYOUT.widthPx + ROUTE_PANEL_LAYOUT.marginPx * 2,
+  16,
+];
+const POPUP_AUTOPAN_PADDING_BOTTOM_RIGHT: L.PointExpression = [16, ROUTE_PANEL_LAYOUT.maxHeightPx];
 
 // GeoJSON = [longitude, latitude], Leaflet = [latitude, longitude].
 function toLatLng([longitude, latitude]: number[]): [number, number] {
@@ -181,7 +201,12 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
                 nous-memes (cf. eventHandlers.click ci-dessus) plutot que par
                 ces comportements automatiques.
               */}
-              <Popup autoClose={false} closeOnClick={false}>
+              <Popup
+                autoClose={false}
+                closeOnClick={false}
+                autoPanPaddingTopLeft={POPUP_AUTOPAN_PADDING_TOP_LEFT}
+                autoPanPaddingBottomRight={POPUP_AUTOPAN_PADDING_BOTTOM_RIGHT}
+              >
                 <strong>{feature.properties.name}</strong>
                 {feature.properties.siteName && feature.properties.siteName !== feature.properties.name && (
                   <>
@@ -203,7 +228,13 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
                 {feature.properties.freeAccess !== null && (
                   <>
                     <br />
-                    <span className={`access-badge ${feature.properties.freeAccess ? "access-badge--free" : "access-badge--restricted"}`}>
+                    <span
+                      className={`${POPUP_BADGE_CLASS} ${
+                        feature.properties.freeAccess
+                          ? "bg-green-100 text-green-800"
+                          : "bg-amber-100 text-amber-800"
+                      }`}
+                    >
                       {feature.properties.freeAccess ? "Accès libre" : "Accès payant / restreint"}
                     </span>
                   </>
@@ -219,10 +250,15 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
               position={toLatLng(cafe.geometry.coordinates)}
               icon={cafeIcon(cafe.properties.amenityType)}
             >
-              <Popup>
+              <Popup
+                autoPanPaddingTopLeft={POPUP_AUTOPAN_PADDING_TOP_LEFT}
+                autoPanPaddingBottomRight={POPUP_AUTOPAN_PADDING_BOTTOM_RIGHT}
+              >
                 <strong>{cafe.properties.name}</strong>
                 <br />
-                {cafe.properties.distanceMeters} m du boulodrome
+                <span className={`${POPUP_BADGE_CLASS} bg-gray-100 text-gray-700`}>
+                  {cafe.properties.distanceMeters} m du boulodrome
+                </span>
                 {cafe.properties.street && (
                   <>
                     <br />

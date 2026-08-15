@@ -292,8 +292,28 @@ bouton "Itinéraire" et le choix du fond de carte en dark mode.
       la couleur appliquée par type
 
 **Mise en page générale**
-- [ ] Audit et correction des chevauchements entre panneaux (recherche,
-      filtres, popups, contrôles de zoom) sur toutes les tailles d'écran
+- [x] Audit et correction des chevauchements entre panneaux (recherche,
+      filtres, popups, contrôles de zoom) sur toutes les tailles d'écran —
+      `RoutePanel` et le contenu des popups (badge libre/payant, distance des
+      cafés) migrés vers Tailwind, dans le même style que les autres panneaux
+      (`rounded-lg border-gray-300 bg-white shadow-sm`) ; géométrie du panneau
+      (largeur/marge/hauteur max) centralisée dans
+      `client/src/constants/routePanelLayout.ts`, partagée avec
+      `BoulodromesMap.tsx` plutôt que dupliquée en constantes déconnectées ;
+      `RoutePanel` gagne un `max-w-[calc(100vw-96px)]` pour ne jamais
+      chevaucher les contrôles de zoom (bas-droite) sur les écrans les plus
+      étroits ; bug trouvé et corrigé : l'auto-pan de Leaflet, qui ne connaît
+      que les limites du conteneur carte, ignorait `RoutePanel` (overlay React
+      par-dessus la carte) — un popup ouvert près du bord bas-gauche pouvait
+      donc se retrouver visuellement sous le panneau (z-index plus élevé) au
+      lieu d'être repoussé par l'auto-pan ; corrigé via
+      `autoPanPaddingTopLeft`/`autoPanPaddingBottomRight` sur les popups
+      (boulodrome et café), calculés à partir de `ROUTE_PANEL_LAYOUT` —
+      vérifié en navigateur réel (Playwright) à 375px/768px/1280px : aucun
+      chevauchement entre recherche/filtres/zoom en état par défaut, ni entre
+      popup et `RoutePanel` sur une douzaine de marqueurs testés à chaque
+      largeur, y compris dans l'état le plus grand du panneau (choix d'une
+      adresse ambiguë)
 
 **Dark mode**
 - [ ] Mise en place d'un mode sombre (palette, fond de carte adapté,
