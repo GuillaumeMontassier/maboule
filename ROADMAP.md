@@ -279,9 +279,17 @@ bouton "Itinéraire" et le choix du fond de carte en dark mode.
 - [ ] Déplacement des boutons zoom (+/-) en bas à droite de l'écran
 
 **Icônes**
-- [ ] Harmonisation des icônes piéton/café/bar/pub : un point avec contour
+- [x] Harmonisation des icônes piéton/café/bar/pub : un point avec contour
       blanc, la couleur variant selon le type d'établissement (au lieu des
-      icônes actuelles hétérogènes)
+      icônes actuelles hétérogènes) — `L.divIcon` avec un `<span>` stylé en
+      classes Tailwind statiques (`bg-blue-600`/`bg-amber-600`/
+      `bg-violet-600`/`bg-rose-600`, `rounded-full`, `border-2 border-white`)
+      plutôt que dynamiques, pour que le scanner JIT de Tailwind les détecte
+      malgré l'injection via `html:` (hors de l'arbre JSX) ;
+      `client/src/components/BoulodromesMap.tsx`, taille de marqueur
+      (`iconSize`) et classes `.cafe-marker`/`.route-start-marker`
+      inchangées ; tests étendus (`BoulodromesMap.test.tsx`) pour vérifier
+      la couleur appliquée par type
 
 **Mise en page générale**
 - [ ] Audit et correction des chevauchements entre panneaux (recherche,

@@ -13,25 +13,32 @@ import { useBoulodromeHistory } from "../hooks/use-boulodrome-history";
 
 const PARIS_CENTER: [number, number] = [48.8566, 2.3522];
 
-// Emoji plutot que trois images d'icones dediees : suffisant pour
-// differencier cafe/bar/pub visuellement sans gerer de nouveaux assets.
-const CAFE_EMOJI_BY_AMENITY: Record<CafeAmenityType, string> = {
-  cafe: "☕",
-  bar: "🍸",
-  pub: "🍺",
+// Point colore a contour blanc, commun aux 4 types (pieton/cafe/bar/pub) ;
+// seule la couleur varie. Classes Tailwind completes et statiques (pas de
+// `bg-${amenityType}`) pour que le scanner JIT les detecte malgre
+// l'interpolation de template literal.
+const CAFE_DOT_COLOR_BY_AMENITY: Record<CafeAmenityType, string> = {
+  cafe: "bg-amber-600",
+  bar: "bg-violet-600",
+  pub: "bg-rose-600",
 };
 
+function dotMarkerHtml(colorClass: string): string {
+  return `<span class="block h-4 w-4 rounded-full border-2 border-white shadow-md ${colorClass}"></span>`;
+}
+
 function cafeIcon(amenityType: CafeAmenityType): L.DivIcon {
+  const colorClass = CAFE_DOT_COLOR_BY_AMENITY[amenityType] ?? "bg-gray-500";
   return L.divIcon({
     className: "cafe-marker",
-    html: CAFE_EMOJI_BY_AMENITY[amenityType] ?? "📍",
+    html: dotMarkerHtml(colorClass),
     iconSize: [24, 24],
   });
 }
 
 const routeStartIcon = L.divIcon({
   className: "route-start-marker",
-  html: "🚶",
+  html: dotMarkerHtml("bg-blue-600"),
   iconSize: [24, 24],
 });
 

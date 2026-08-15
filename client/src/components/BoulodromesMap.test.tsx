@@ -176,6 +176,8 @@ describe("BoulodromesMap - cafés à proximité", () => {
 
     await waitFor(() => expect(fetchCafesNearBoulodrome).toHaveBeenCalledWith("data-es:1"));
     await waitFor(() => expect(container.querySelector(".cafe-marker")).toBeTruthy());
+    // sampleCafes contient un établissement amenityType "bar" : couleur dédiée attendue.
+    expect(container.querySelector(".cafe-marker .bg-violet-600")).toBeTruthy();
   });
 
   it("retire les marqueurs cafés du boulodrome précédent quand on en sélectionne un autre", async () => {
@@ -348,6 +350,7 @@ describe("BoulodromesMap - itinéraire depuis la position GPS", () => {
       expect(fetchRoute).toHaveBeenCalledWith("data-es:1", { latitude: 48.85, longitude: 2.35 }),
     );
     await waitFor(() => expect(container.querySelector(".route-start-marker")).toBeTruthy());
+    expect(container.querySelector(".route-start-marker .bg-blue-600")).toBeTruthy();
     expect(await screen.findByText(/846 m/)).toBeTruthy();
   });
 
