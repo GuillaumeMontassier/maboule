@@ -12,9 +12,13 @@ export function FreeAccessFilter({ value, onChange }: FreeAccessFilterProps) {
   }
 
   return (
-    <label className="flex flex-col gap-1 rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm">
+    <label className="flex flex-col gap-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">
       Accès
-      <select value={value === undefined ? "" : String(value)} onChange={handleChange}>
+      <select
+        value={value === undefined ? "" : String(value)}
+        onChange={handleChange}
+        className="dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+      >
         <option value="">Tous</option>
         <option value="true">Accès libre</option>
         <option value="false">Accès payant / restreint</option>

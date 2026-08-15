@@ -11,7 +11,7 @@ export function CheckboxFilter({ legend, options, selected, onChange }: Checkbox
   }
 
   return (
-    <fieldset className="flex flex-col gap-1 rounded-lg border border-gray-300 bg-white px-3 py-2 shadow-sm">
+    <fieldset className="flex flex-col gap-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">
       <legend>{legend}</legend>
       {options.map((value) => (
         <label key={value} className="flex items-center gap-1.5 font-normal">

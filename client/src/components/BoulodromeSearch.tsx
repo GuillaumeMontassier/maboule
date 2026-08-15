@@ -16,7 +16,8 @@ interface BoulodromeSearchProps {
 // Chrome de card blanche partagee par les etats loading/error/vide/resultats
 // (le padding est omis ici : la liste de resultats n'en a pas, le padding est
 // porte par ses boutons enfants au lieu du <ul>).
-const STATUS_CARD_CLASS = "mt-1.5 rounded-lg border border-gray-300 bg-white shadow-sm";
+const STATUS_CARD_CLASS =
+  "mt-1.5 rounded-lg border border-gray-300 bg-white text-gray-900 shadow-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100";
 
 const SEARCH_DEBOUNCE_MS = 300;
 const MIN_QUERY_LENGTH = 2;
@@ -34,13 +35,15 @@ interface SelectableListProps<T> {
 // differe entre les deux usages.
 function SelectableList<T>({ items, keyOf, onSelect, renderItem }: SelectableListProps<T>) {
   return (
-    <ul className={`${STATUS_CARD_CLASS} max-h-60 list-none divide-y divide-gray-200 overflow-y-auto`}>
+    <ul
+      className={`${STATUS_CARD_CLASS} max-h-60 list-none divide-y divide-gray-200 overflow-y-auto dark:divide-gray-700`}
+    >
       {items.map((item) => (
         <li key={keyOf(item)}>
           <button
             type="button"
             onClick={() => onSelect(item)}
-            className="block w-full cursor-pointer px-2.5 py-1.5 text-left hover:bg-gray-100"
+            className="block w-full cursor-pointer px-2.5 py-1.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700"
           >
             {renderItem(item)}
           </button>
@@ -128,7 +131,7 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [] }: Boulodrom
           placeholder="Rechercher un boulodrome…"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          className="w-full rounded-md border border-gray-300 px-2 py-1.5"
+          className="w-full rounded-md border border-gray-300 px-2 py-1.5 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400"
         />
       </form>
       {isFocused && query.trim().length === 0 && history.length > 0 && (
@@ -141,7 +144,7 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [] }: Boulodrom
       )}
       {state.status === "loading" && <p className={`${STATUS_CARD_CLASS} px-2.5 py-1.5`}>Recherche…</p>}
       {state.status === "error" && (
-        <p className={`${STATUS_CARD_CLASS} px-2.5 py-1.5 text-red-700`}>{state.message}</p>
+        <p className={`${STATUS_CARD_CLASS} px-2.5 py-1.5 text-red-700 dark:text-red-400`}>{state.message}</p>
       )}
       {state.status === "success" && state.data.features.length === 0 && (
         <p className={`${STATUS_CARD_CLASS} px-2.5 py-1.5`}>Aucun boulodrome trouvé.</p>

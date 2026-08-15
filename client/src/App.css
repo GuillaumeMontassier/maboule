@@ -25,8 +25,16 @@ html.dark .leaflet-container {
   font-family: system-ui, sans-serif;
 }
 
+html.dark .status {
+  color: var(--color-gray-100);
+}
+
 .status-error {
   color: #b91c1c;
+}
+
+html.dark .status-error {
+  color: var(--color-red-400);
 }
 
 .cafe-marker,
@@ -34,6 +42,27 @@ html.dark .leaflet-container {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* Chrome des popups Leaflet (boulodrome, cafe) - rendu par Leaflet lui-meme
+   (pas du JSX), donc hors de portee de Tailwind : leaflet.css fixe un fond
+   blanc et un texte fonce en dur sur `.leaflet-popup-content-wrapper` et
+   `.leaflet-popup-tip`, qu'il faut donc reecrire ici en theme sombre (ticket
+   11). Le contenu (badges, texte) herite de cette couleur de texte sauf
+   classes `dark:` explicites deja posees sur les badges. */
+html.dark .leaflet-popup-content-wrapper,
+html.dark .leaflet-popup-tip {
+  background-color: var(--color-gray-800);
+  color: var(--color-gray-100);
+}
+
+html.dark .leaflet-container a.leaflet-popup-close-button {
+  color: var(--color-gray-300);
+}
+
+html.dark .leaflet-container a.leaflet-popup-close-button:hover,
+html.dark .leaflet-container a.leaflet-popup-close-button:focus {
+  color: var(--color-gray-100);
 }
 
 /* Leaflet applique 10px de marge par defaut sur ses controles - aligne ici

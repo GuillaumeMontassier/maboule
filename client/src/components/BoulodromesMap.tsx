@@ -233,8 +233,8 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
                     <span
                       className={`${POPUP_BADGE_CLASS} ${
                         feature.properties.freeAccess
-                          ? "bg-green-100 text-green-800"
-                          : "bg-amber-100 text-amber-800"
+                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                          : "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200"
                       }`}
                     >
                       {feature.properties.freeAccess ? "Accès libre" : "Accès payant / restreint"}
@@ -258,7 +258,7 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
               >
                 <strong>{cafe.properties.name}</strong>
                 <br />
-                <span className={`${POPUP_BADGE_CLASS} bg-gray-100 text-gray-700`}>
+                <span className={`${POPUP_BADGE_CLASS} bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200`}>
                   {cafe.properties.distanceMeters} m du boulodrome
                 </span>
                 {cafe.properties.street && (

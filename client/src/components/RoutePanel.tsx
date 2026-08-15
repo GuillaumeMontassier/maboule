@@ -164,17 +164,17 @@ export function RoutePanel({ boulodromeId, onRouteChange }: RoutePanelProps) {
     // chevaucher les controles de zoom (bas-droite) sur les ecrans les plus
     // etroits (< ~376px de large, ou 280px + les deux marges de 12px
     // depassent l'espace disponible avant ces controles).
-    <div className="fixed bottom-3 left-3 z-[1000] w-[280px] max-w-[calc(100vw-96px)] rounded-lg border border-gray-300 bg-white px-3 py-2.5 font-sans text-sm shadow-sm">
+    <div className="fixed bottom-3 left-3 z-[1000] w-[280px] max-w-[calc(100vw-96px)] rounded-lg border border-gray-300 bg-white px-3 py-2.5 font-sans text-sm text-gray-900 shadow-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">
       <h2 className="mb-2 text-base">Itinéraire</h2>
       <button
         type="button"
         onClick={handleUseMyLocation}
         disabled={busy}
-        className="w-full cursor-pointer rounded-md border border-gray-300 bg-gray-100 px-2 py-1.5 disabled:cursor-default disabled:opacity-60"
+        className="w-full cursor-pointer rounded-md border border-gray-300 bg-gray-100 px-2 py-1.5 disabled:cursor-default disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700"
       >
         Utiliser ma position
       </button>
-      <p className="my-2 text-center text-[0.85em] text-gray-500">ou</p>
+      <p className="my-2 text-center text-[0.85em] text-gray-500 dark:text-gray-400">ou</p>
       <form onSubmit={handleAddressSubmit} className="flex gap-1.5">
         <input
           type="search"
@@ -183,12 +183,12 @@ export function RoutePanel({ boulodromeId, onRouteChange }: RoutePanelProps) {
           value={addressQuery}
           onChange={(event) => setAddressQuery(event.target.value)}
           disabled={busy}
-          className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1.5"
+          className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1.5 dark:border-gray-600 dark:bg-gray-700 dark:placeholder-gray-400"
         />
         <button
           type="submit"
           disabled={busy}
-          className="w-auto cursor-pointer rounded-md border border-gray-300 bg-gray-100 px-2 py-1.5 whitespace-nowrap disabled:cursor-default disabled:opacity-60"
+          className="w-auto cursor-pointer rounded-md border border-gray-300 bg-gray-100 px-2 py-1.5 whitespace-nowrap disabled:cursor-default disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700"
         >
           Rechercher l'adresse
         </button>
@@ -196,15 +196,15 @@ export function RoutePanel({ boulodromeId, onRouteChange }: RoutePanelProps) {
       {state.status === "locating" && <p className="mt-2">Récupération de votre position…</p>}
       {state.status === "geocoding" && <p className="mt-2">Recherche de l'adresse…</p>}
       {state.status === "loading" && <p className="mt-2">Calcul de l'itinéraire…</p>}
-      {state.status === "error" && <p className="mt-2 text-red-700">{state.message}</p>}
+      {state.status === "error" && <p className="mt-2 text-red-700 dark:text-red-400">{state.message}</p>}
       {state.status === "choosing" && (
-        <ul className="mt-2 max-h-40 list-none divide-y divide-gray-200 overflow-y-auto rounded-md border border-gray-300">
+        <ul className="mt-2 max-h-40 list-none divide-y divide-gray-200 overflow-y-auto rounded-md border border-gray-300 dark:divide-gray-700 dark:border-gray-600">
           {state.candidates.map((candidate) => (
             <li key={`${candidate.label}-${candidate.coordinates.latitude}-${candidate.coordinates.longitude}`}>
               <button
                 type="button"
                 onClick={() => handleSelectCandidate(candidate)}
-                className="block w-full cursor-pointer px-2 py-1.5 text-left hover:bg-gray-100"
+                className="block w-full cursor-pointer px-2 py-1.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700"
               >
                 {candidate.label}
               </button>
