@@ -32,3 +32,19 @@ class MemoryStorage implements Storage {
 }
 
 Object.defineProperty(window, "localStorage", { value: new MemoryStorage(), configurable: true });
+
+// jsdom n'implemente pas window.matchMedia - un mock par defaut (aucune
+// preference systeme sombre) permet aux composants utilisant `useTheme`
+// (cf. hooks/use-theme.ts) de monter dans les tests qui ne testent pas ce
+// mecanisme specifiquement ; les tests dedies (use-theme.test.ts)
+// redefinissent ce mock au cas par cas.
+Object.defineProperty(window, "matchMedia", {
+  writable: true,
+  configurable: true,
+  value: (query: string) => ({
+    matches: false,
+    media: query,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  }),
+});

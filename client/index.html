@@ -5,6 +5,23 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Paris Pétanque — Carte des boulodromes de Paris</title>
+    <script>
+      // Applique le theme avant le premier rendu pour eviter un flash clair
+      // le temps que React monte et que `useTheme` (client/src/hooks/use-theme.ts)
+      // prenne le relais - meme logique que ce hook (cle localStorage `theme`,
+      // repli sur `prefers-color-scheme`), dupliquee ici car ce script doit
+      // s'executer de façon synchrone avant tout rendu, donc sans dependre du
+      // bundle JS module (charge en differe). Garder synchronisee avec
+      // `use-theme.ts` en cas de changement.
+      (function () {
+        try {
+          var stored = localStorage.getItem("theme");
+          var dark = stored === "dark" || (stored !== "light" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+          document.documentElement.classList.toggle("dark", dark);
+          document.documentElement.style.colorScheme = dark ? "dark" : "light";
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

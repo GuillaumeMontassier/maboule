@@ -3,6 +3,19 @@
   width: 100%;
 }
 
+/* Fond du conteneur Leaflet (visible aux bords/zooms faibles, derriere les
+   tuiles) - reagit au theme comme preuve que l'infrastructure dark mode
+   fonctionne (ticket 10). Le fournisseur de tuiles actuel n'a pas de
+   variante sombre : traiter les tuiles elles-memes est reporte (cf. spec
+   phase 6, decision reportee "Fond de carte en dark mode"). */
+.leaflet-container {
+  background-color: var(--color-gray-200);
+}
+
+html.dark .leaflet-container {
+  background-color: var(--color-gray-900);
+}
+
 .status {
   display: flex;
   align-items: center;

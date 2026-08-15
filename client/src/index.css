@@ -18,3 +18,10 @@ body,
   margin: 0;
   height: 100%;
 }
+
+body {
+  /* Preuve visible que l'infrastructure dark mode fonctionne (ticket 10) -
+     le reste des panneaux (recherche, filtres, popups...) est stylé en dark
+     au ticket suivant. */
+  @apply bg-white dark:bg-gray-900;
+}
