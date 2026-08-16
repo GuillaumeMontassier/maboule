@@ -6,11 +6,11 @@
 
 **What to build:** En light mode, le champ recherche n'a pas de fond opaque — il laisse apparaître le contenu derrière lui (carte, autres panneaux), ce qui le rend difficile à lire selon ce qu'il y a en arrière-plan.
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Origine :** Retour utilisateur du 2026-08-16 (capture d'écran). Confirmé en lisant `BoulodromeSearch.tsx` : la classe du champ (`w-full rounded-md border border-gray-300 px-2 py-1.5 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400`) définit un fond en dark mode (`dark:bg-gray-800`) mais aucun fond explicite en light mode.
 
-- [ ] En light mode, le champ recherche a un fond blanc opaque — réutiliser le même token que les autres panneaux flottants (`STATUS_CARD_CLASS` utilise déjà `bg-white`/`dark:bg-gray-800`) plutôt qu'une valeur codée en dur séparément
-- [ ] Le dark mode reste inchangé (déjà correct)
-- [ ] Aucune régression sur le style existant du champ (bordure, padding, placeholder)
-- [ ] Vérifié en navigateur réel (Playwright), light et dark mode, sur un fond de carte chargé (le bug n'est visible qu'avec du contenu derrière le champ)
+- [x] En light mode, le champ recherche a un fond blanc opaque — réutiliser le même token que les autres panneaux flottants (`STATUS_CARD_CLASS` utilise déjà `bg-white`/`dark:bg-gray-800`) plutôt qu'une valeur codée en dur séparément — `SURFACE_CLASS` introduit dans `BoulodromeSearch.tsx`, partagé entre le champ et `STATUS_CARD_CLASS`
+- [x] Le dark mode reste inchangé (déjà correct)
+- [x] Aucune régression sur le style existant du champ (bordure, padding, placeholder)
+- [x] Vérifié en navigateur réel (Playwright), light et dark mode, sur un fond de carte chargé (le bug n'est visible qu'avec du contenu derrière le champ)

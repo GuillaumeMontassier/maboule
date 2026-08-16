@@ -13,11 +13,17 @@ interface BoulodromeSearchProps {
   history?: BoulodromeHistoryEntry[];
 }
 
+// Fond opaque partage par tous les panneaux flottants du widget (champ +
+// cards loading/error/vide/resultats) - un seul token pour les deux, plutot
+// que de dupliquer bg-white/dark:bg-gray-800 sur le champ separement (ticket
+// 18 : le champ n'avait pas de fond en light mode, laissant transparaitre la
+// carte derriere lui).
+const SURFACE_CLASS = "bg-white text-gray-900 dark:bg-gray-800 dark:text-gray-100";
+
 // Chrome de card blanche partagee par les etats loading/error/vide/resultats
 // (le padding est omis ici : la liste de resultats n'en a pas, le padding est
 // porte par ses boutons enfants au lieu du <ul>).
-const STATUS_CARD_CLASS =
-  "mt-1.5 rounded-lg border border-gray-300 bg-white text-gray-900 shadow-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100";
+const STATUS_CARD_CLASS = `mt-1.5 rounded-lg border border-gray-300 shadow-sm dark:border-gray-600 ${SURFACE_CLASS}`;
 
 const SEARCH_DEBOUNCE_MS = 300;
 const MIN_QUERY_LENGTH = 2;
@@ -131,7 +137,7 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [] }: Boulodrom
           placeholder="Rechercher un boulodrome…"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          className="w-full rounded-md border border-gray-300 px-2 py-1.5 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-400"
+          className={`w-full rounded-md border border-gray-300 px-2 py-1.5 dark:border-gray-600 dark:placeholder-gray-400 ${SURFACE_CLASS}`}
         />
       </form>
       {isFocused && query.trim().length === 0 && history.length > 0 && (
