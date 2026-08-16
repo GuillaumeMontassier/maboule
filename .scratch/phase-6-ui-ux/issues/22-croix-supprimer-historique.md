@@ -6,9 +6,9 @@
 
 **What to build:** Chaque entrée de l'historique de recherche affiche une icône croix permettant de la supprimer individuellement de l'historique (et de sa persistance), sans sélectionner le boulodrome correspondant.
 
-**Blocked by:** 19 — Dépendance icônes (lucide-react) + remplacement des emoji du bouton dark mode
+**Blocked by:** 19 — Dépendance icônes (lucide-react) + remplacement des emoji du bouton dark mode (done, débloqué)
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Origine :** Retour utilisateur du 2026-08-16.
 
@@ -16,9 +16,30 @@
 - Le hook qui gère l'historique doit exposer une fonction de suppression symétrique à l'ajout (retire une entrée par id de l'état et de la persistance locale).
 - La liste d'historique actuelle rend chaque ligne comme un unique élément cliquable englobant tout le contenu de la ligne. Imbriquer un second élément interactif (la croix) à l'intérieur est invalide en HTML et rend le clic ambigu — la structure de rendu de la ligne doit être adaptée pour que le clic sur la croix ne déclenche pas la sélection du boulodrome (deux contrôles frères plutôt qu'un contrôle unique englobant).
 
-- [ ] Chaque entrée de l'historique affiche une icône croix (lucide-react `X`) qui, au clic, retire l'entrée de l'historique affiché et de sa persistance, sans naviguer vers ce boulodrome
-- [ ] Cliquer sur le reste de la ligne (hors croix) sélectionne toujours le boulodrome comme avant
-- [ ] La croix est accessible au clavier (focusable indépendamment du reste de la ligne, `aria-label` explicite du type "Supprimer de l'historique")
-- [ ] Aucun élément interactif imbriqué dans un autre dans le HTML généré
-- [ ] Tests existants du hook d'historique étendus pour couvrir la suppression ; tests du composant de recherche étendus pour couvrir le clic sur la croix
-- [ ] Vérifié en navigateur réel (Playwright) : suppression d'une entrée, persistance après rechargement de page, clic sur le reste de la ligne toujours fonctionnel
+- [x] Chaque entrée de l'historique affiche une icône croix (lucide-react `X`) qui, au clic, retire l'entrée de l'historique affiché et de sa persistance, sans naviguer vers ce boulodrome —
+      `removeFromHistory` ajouté à `client/src/hooks/use-boulodrome-history.ts`, symétrique à `addToHistory`
+      (filtre par id + persistance localStorage factorisée dans un helper `persistHistory` partagé par les deux) ;
+      câblé depuis `BoulodromesMap.tsx` jusqu'à `BoulodromeSearch` via une nouvelle prop `onRemoveFromHistory`
+- [x] Cliquer sur le reste de la ligne (hors croix) sélectionne toujours le boulodrome comme avant —
+      `SelectableList` (`client/src/components/BoulodromeSearch.tsx`) restructurée en `<li className="flex">`
+      avec deux `<button>` frères (sélection en `flex-1`, croix optionnelle via une nouvelle prop
+      `renderSecondaryAction`) plutôt qu'un bouton unique englobant
+- [x] La croix est accessible au clavier (focusable indépendamment du reste de la ligne, `aria-label` explicite du type "Supprimer de l'historique") —
+      `aria-label={`Supprimer ${entry.name} de l'historique`}` (nommant l'entrée plutôt qu'un texte générique
+      identique sur toutes les lignes, pour rester identifiable au clavier/lecteur d'écran) ; le bouton n'est
+      rendu que si `onRemoveFromHistory` est fourni (pas d'affordance morte si l'appelant omet le handler)
+- [x] Aucun élément interactif imbriqué dans un autre dans le HTML généré — vérifié (deux boutons frères, pas de nesting)
+- [x] Tests existants du hook d'historique étendus pour couvrir la suppression ; tests du composant de recherche étendus pour couvrir le clic sur la croix —
+      2 tests ajoutés dans `use-boulodrome-history.test.ts` (suppression par id, persistance après
+      "rechargement") ; tests ajoutés dans `BoulodromeSearch.test.tsx` (aria-label par entrée, absence de
+      croix sans handler, clic ne sélectionne pas le boulodrome, clic sur le reste de la ligne sélectionne
+      toujours)
+- [x] Vérifié en navigateur réel (Playwright) : suppression d'une entrée, persistance après rechargement de page, clic sur le reste de la ligne toujours fonctionnel
+
+Bug trouvé et corrigé en cours de route (relevé par `/code-review`) : supprimer au clavier l'entrée qui a
+actuellement le focus retire son bouton du DOM, ce qui fait perdre le focus au widget entier — `handleBlur`
+(basé sur `relatedTarget`) interprétait ça comme une sortie du widget et refermait tout le panneau
+d'historique, y compris les entrées restantes. Corrigé en redonnant explicitement le focus au champ de
+recherche dans le handler de clic de la croix, avant que le blur naturel ne se déclenche. Test de
+non-régression ajouté avec un composant de test qui porte réellement l'état de l'historique (les autres
+tests passent un tableau statique, insuffisant pour reproduire le retrait du DOM).
