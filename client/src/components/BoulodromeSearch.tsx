@@ -12,6 +12,7 @@ type SearchState =
 interface BoulodromeSearchProps {
   onSelectBoulodrome: (id: string) => void;
   history?: BoulodromeHistoryEntry[];
+  onRemoveFromHistory?: (id: string) => void;
 }
 
 // Fond opaque partage par tous les panneaux flottants du widget (champ +
@@ -26,6 +27,10 @@ const SURFACE_CLASS = "bg-white text-gray-900 dark:bg-gray-800 dark:text-gray-10
 // porte par ses boutons enfants au lieu du <ul>).
 const STATUS_CARD_CLASS = `mt-1.5 rounded-lg border border-gray-300 shadow-sm dark:border-gray-600 ${SURFACE_CLASS}`;
 
+// Style partage par les boutons icone du widget (croix d'effacement du champ,
+// croix de suppression d'une entree d'historique).
+const ICON_BUTTON_CLASS = "cursor-pointer text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200";
+
 const SEARCH_DEBOUNCE_MS = 300;
 const MIN_QUERY_LENGTH = 2;
 
@@ -34,33 +39,39 @@ interface SelectableListProps<T> {
   keyOf: (item: T) => string;
   onSelect: (item: T) => void;
   renderItem: (item: T) => ReactNode;
+  // Action secondaire optionnelle (croix de suppression de l'historique,
+  // ticket 22) rendue comme bouton frere du bouton de selection, jamais
+  // imbriquee dedans : un <button> dans un <button> est invalide en HTML et
+  // rendrait le clic ambigu entre les deux actions.
+  renderSecondaryAction?: (item: T) => ReactNode;
 }
 
 // Liste cliquable partagee par l'historique et les resultats de recherche -
 // meme chrome visuel (`STATUS_CARD_CLASS` + puces sans bullet, separateurs)
 // et meme mecanique de selection au clic, seul le contenu de chaque ligne
 // differe entre les deux usages.
-function SelectableList<T>({ items, keyOf, onSelect, renderItem }: SelectableListProps<T>) {
+function SelectableList<T>({ items, keyOf, onSelect, renderItem, renderSecondaryAction }: SelectableListProps<T>) {
   return (
     <ul
       className={`${STATUS_CARD_CLASS} max-h-60 list-none divide-y divide-gray-200 overflow-y-auto dark:divide-gray-700`}
     >
       {items.map((item) => (
-        <li key={keyOf(item)}>
+        <li key={keyOf(item)} className="flex items-stretch">
           <button
             type="button"
             onClick={() => onSelect(item)}
-            className="block w-full cursor-pointer px-2.5 py-1.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700"
+            className="block flex-1 cursor-pointer px-2.5 py-1.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700"
           >
             {renderItem(item)}
           </button>
+          {renderSecondaryAction?.(item)}
         </li>
       ))}
     </ul>
   );
 }
 
-export function BoulodromeSearch({ onSelectBoulodrome, history = [] }: BoulodromeSearchProps) {
+export function BoulodromeSearch({ onSelectBoulodrome, history = [], onRemoveFromHistory }: BoulodromeSearchProps) {
   const [query, setQuery] = useState("");
   const [state, setState] = useState<SearchState>({ status: "idle" });
   // Piloté par le focus/blur du widget entier (champ + listes) - l'historique
@@ -156,7 +167,7 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [] }: Boulodrom
             type="button"
             onClick={handleClear}
             aria-label="Effacer la recherche"
-            className="absolute top-1/2 right-1.5 -translate-y-1/2 cursor-pointer text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            className={`absolute top-1/2 right-1.5 -translate-y-1/2 ${ICON_BUTTON_CLASS}`}
           >
             <X size={16} />
           </button>
@@ -168,6 +179,28 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [] }: Boulodrom
           keyOf={(entry) => entry.id}
           onSelect={(entry) => onSelectBoulodrome(entry.id)}
           renderItem={(entry) => entry.name}
+          renderSecondaryAction={
+            onRemoveFromHistory &&
+            ((entry) => (
+              <button
+                type="button"
+                onClick={() => {
+                  onRemoveFromHistory(entry.id);
+                  // Le bouton clique est retire du DOM par la suppression : sans
+                  // ce recadrage explicite, le focus quitterait le widget (vers
+                  // `document.body`), ce que `handleBlur` interprete comme une
+                  // perte de focus du widget entier et referme tout le panneau
+                  // (y compris les entrees restantes) au lieu de la seule ligne
+                  // supprimee.
+                  inputRef.current?.focus();
+                }}
+                aria-label={`Supprimer ${entry.name} de l'historique`}
+                className={`px-2 ${ICON_BUTTON_CLASS}`}
+              >
+                <X size={14} />
+              </button>
+            ))
+          }
         />
       )}
       {state.status === "loading" && <p className={`${STATUS_CARD_CLASS} px-2.5 py-1.5`}>Recherche…</p>}

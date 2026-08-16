@@ -80,7 +80,7 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
   // Instance Leaflet de la carte, pour piloter le recentrage (`flyTo`) au
   // clic sur un marqueur ou a la selection d'un resultat de recherche.
   const mapRef = useRef<L.Map | null>(null);
-  const { history, addToHistory } = useBoulodromeHistory();
+  const { history, addToHistory, removeFromHistory } = useBoulodromeHistory();
 
   useEffect(() => {
     if (!selectedBoulodromeId) {
@@ -152,7 +152,11 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
 
   return (
     <>
-      <BoulodromeSearch onSelectBoulodrome={selectBoulodrome} history={history} />
+      <BoulodromeSearch
+        onSelectBoulodrome={selectBoulodrome}
+        history={history}
+        onRemoveFromHistory={removeFromHistory}
+      />
       {selectedBoulodromeId && (
         <RoutePanel key={selectedBoulodromeId} boulodromeId={selectedBoulodromeId} onRouteChange={setRoute} />
       )}

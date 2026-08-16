@@ -1,6 +1,8 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { useState } from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { BoulodromeSearch } from "./BoulodromeSearch";
+import type { BoulodromeHistoryEntry } from "../hooks/use-boulodrome-history";
 import { fetchBoulodromes } from "../api/boulodromes";
 import type { BoulodromesFeatureCollection } from "../api/boulodromes";
 
@@ -49,6 +51,22 @@ function defer<T>(): Deferred<T> {
 
 function wait(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
+}
+
+// Porte reellement l'etat de l'historique (contrairement aux autres tests qui
+// passent un tableau statique) pour pouvoir observer ce qui se passe dans le
+// DOM quand une suppression retire vraiment une entree - notamment le
+// deplacement de focus qu'une suppression via clavier/clic provoque quand le
+// bouton supprime est retire du DOM.
+function ControlledHistorySearch({ initialHistory }: { initialHistory: BoulodromeHistoryEntry[] }) {
+  const [history, setHistory] = useState(initialHistory);
+  return (
+    <BoulodromeSearch
+      onSelectBoulodrome={vi.fn()}
+      history={history}
+      onRemoveFromHistory={(id) => setHistory((current) => current.filter((entry) => entry.id !== id))}
+    />
+  );
 }
 
 afterEach(() => {
@@ -165,6 +183,91 @@ describe("BoulodromeSearch", () => {
     const onSelectBoulodrome = vi.fn();
 
     render(<BoulodromeSearch onSelectBoulodrome={onSelectBoulodrome} history={history} />);
+    const input = screen.getByLabelText("Rechercher un boulodrome");
+
+    fireEvent.focus(input);
+    fireEvent.click(screen.getByRole("button", { name: "ARSENAL" }));
+
+    expect(onSelectBoulodrome).toHaveBeenCalledExactlyOnceWith("data-es:1");
+  });
+
+  it("affiche une croix de suppression nommant l'entree sur chaque ligne de l'historique", () => {
+    const history = [
+      { id: "data-es:1", name: "ARSENAL" },
+      { id: "data-es:2", name: "VINCENNES" },
+    ];
+
+    render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} history={history} onRemoveFromHistory={vi.fn()} />);
+    const input = screen.getByLabelText("Rechercher un boulodrome");
+
+    fireEvent.focus(input);
+
+    // Aria-label distinct par entree (pas un texte generique identique pour
+    // toutes les lignes) : au clavier/lecteur d'ecran, chaque croix doit
+    // s'identifier sans dependre de la position visuelle.
+    expect(screen.getByRole("button", { name: "Supprimer ARSENAL de l'historique" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Supprimer VINCENNES de l'historique" })).toBeTruthy();
+  });
+
+  it("n'affiche pas de croix de suppression si aucun gestionnaire n'est fourni", () => {
+    const history = [{ id: "data-es:1", name: "ARSENAL" }];
+
+    render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} history={history} />);
+    const input = screen.getByLabelText("Rechercher un boulodrome");
+
+    fireEvent.focus(input);
+
+    expect(screen.queryByRole("button", { name: "Supprimer ARSENAL de l'historique" })).toBeNull();
+  });
+
+  it("cliquer la croix retire l'entree de l'historique sans selectionner le boulodrome", () => {
+    const history = [{ id: "data-es:1", name: "ARSENAL" }];
+    const onSelectBoulodrome = vi.fn();
+    const onRemoveFromHistory = vi.fn();
+
+    render(
+      <BoulodromeSearch
+        onSelectBoulodrome={onSelectBoulodrome}
+        history={history}
+        onRemoveFromHistory={onRemoveFromHistory}
+      />,
+    );
+    const input = screen.getByLabelText("Rechercher un boulodrome");
+
+    fireEvent.focus(input);
+    fireEvent.click(screen.getByRole("button", { name: "Supprimer ARSENAL de l'historique" }));
+
+    expect(onRemoveFromHistory).toHaveBeenCalledExactlyOnceWith("data-es:1");
+    expect(onSelectBoulodrome).not.toHaveBeenCalled();
+  });
+
+  it("garde le panneau d'historique ouvert (ne perd pas le focus du widget) apres suppression d'une entree qui avait le focus", () => {
+    const history = [
+      { id: "data-es:1", name: "ARSENAL" },
+      { id: "data-es:2", name: "VINCENNES" },
+    ];
+
+    render(<ControlledHistorySearch initialHistory={history} />);
+    const input = screen.getByLabelText("Rechercher un boulodrome");
+
+    fireEvent.focus(input);
+    const deleteButton = screen.getByRole("button", { name: "Supprimer ARSENAL de l'historique" });
+    deleteButton.focus();
+    fireEvent.click(deleteButton);
+
+    // La ligne supprimee disparait du DOM (et donc du focus) mais le reste du
+    // panneau doit rester visible : le focus doit revenir dans le widget
+    // (ici, le champ de recherche) plutot que d'en sortir et de faire
+    // basculer `isFocused` a false via `handleBlur`.
+    expect(document.activeElement).toBe(input);
+    expect(screen.getByText("VINCENNES")).toBeTruthy();
+  });
+
+  it("cliquer le reste de la ligne d'historique selectionne toujours le boulodrome", () => {
+    const history = [{ id: "data-es:1", name: "ARSENAL" }];
+    const onSelectBoulodrome = vi.fn();
+
+    render(<BoulodromeSearch onSelectBoulodrome={onSelectBoulodrome} history={history} onRemoveFromHistory={vi.fn()} />);
     const input = screen.getByLabelText("Rechercher un boulodrome");
 
     fireEvent.focus(input);

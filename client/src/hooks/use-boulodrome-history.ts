@@ -24,6 +24,15 @@ function normalizeHistory(entries: BoulodromeHistoryEntry[]): BoulodromeHistoryE
   return deduped.slice(0, MAX_ENTRIES);
 }
 
+function persistHistory(entries: BoulodromeHistoryEntry[]): void {
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  } catch {
+    // Best-effort : la persistance echoue silencieusement (quota,
+    // navigation privee), l'historique reste utilisable pour la session.
+  }
+}
+
 function readStoredHistory(): BoulodromeHistoryEntry[] {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -57,15 +66,18 @@ export function useBoulodromeHistory() {
       // ecartee par `normalizeHistory` (premiere occurrence gardee) plutot
       // que dupliquee, et remonte de fait en tete.
       const next = normalizeHistory([entry, ...current]);
-      try {
-        window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-      } catch {
-        // Best-effort : la persistance echoue silencieusement (quota,
-        // navigation privee), l'historique reste utilisable pour la session.
-      }
+      persistHistory(next);
       return next;
     });
   }, []);
 
-  return { history, addToHistory };
+  const removeFromHistory = useCallback((id: string) => {
+    setHistory((current) => {
+      const next = current.filter((entry) => entry.id !== id);
+      persistHistory(next);
+      return next;
+    });
+  }, []);
+
+  return { history, addToHistory, removeFromHistory };
 }

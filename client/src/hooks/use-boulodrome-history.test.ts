@@ -67,6 +67,29 @@ describe("useBoulodromeHistory", () => {
     expect(result.current.history).toEqual([]);
   });
 
+  it("retire une entree de l'historique par id, sans toucher aux autres", () => {
+    const { result } = renderHook(() => useBoulodromeHistory());
+
+    act(() => result.current.addToHistory({ id: "data-es:1", name: "ARSENAL" }));
+    act(() => result.current.addToHistory({ id: "data-es:2", name: "VINCENNES" }));
+    act(() => result.current.removeFromHistory("data-es:1"));
+
+    expect(result.current.history).toEqual([{ id: "data-es:2", name: "VINCENNES" }]);
+  });
+
+  it("persiste la suppression en localStorage (l'entree retiree ne revient pas apres rechargement)", () => {
+    const { result, unmount } = renderHook(() => useBoulodromeHistory());
+
+    act(() => result.current.addToHistory({ id: "data-es:1", name: "ARSENAL" }));
+    act(() => result.current.addToHistory({ id: "data-es:2", name: "VINCENNES" }));
+    act(() => result.current.removeFromHistory("data-es:1"));
+    unmount();
+
+    const { result: resultAfterReload } = renderHook(() => useBoulodromeHistory());
+
+    expect(resultAfterReload.current.history).toEqual([{ id: "data-es:2", name: "VINCENNES" }]);
+  });
+
   it("normalise (limite a 5, deduplique) un contenu localStorage deja hors invariants a la lecture", () => {
     // Contenu qu'on ne peut pas garantir avoir ete ecrit par cette version de
     // l'app (edition manuelle, version differente avec un autre plafond) :
