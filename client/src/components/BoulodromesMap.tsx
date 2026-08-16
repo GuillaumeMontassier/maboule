@@ -11,7 +11,7 @@ import { BoulodromeSearch } from "./BoulodromeSearch";
 import { RoutePanel } from "./RoutePanel";
 import { ThemeToggle } from "./ThemeToggle";
 import { useBoulodromeHistory } from "../hooks/use-boulodrome-history";
-import { ROUTE_PANEL_LAYOUT } from "../constants/routePanelLayout";
+import { computePopupAutoPanPadding } from "../lib/popup-auto-pan";
 
 const PARIS_CENTER: [number, number] = [48.8566, 2.3522];
 
@@ -48,20 +48,12 @@ const routeStartIcon = L.divIcon({
   iconSize: [24, 24],
 });
 
-// Le RoutePanel (bas-gauche) est un overlay React positionne par-dessus la
-// carte, invisible du mecanisme d'auto-pan de Leaflet - sans ce reglage, un
-// popup ouvert pres du bord bas-gauche peut se retrouver visuellement sous le
-// panneau (z-index plus eleve) plutot que d'etre repousse par l'auto-pan.
-// Leaflet ne reserve que des marges rectangulaires depuis chaque bord (pas un
-// rectangle arbitraire dans un coin) : on reserve donc une marge large a la
-// fois a gauche et en bas, calculee a partir de `ROUTE_PANEL_LAYOUT` (source
-// commune avec les classes Tailwind du panneau) plutot que sur des constantes
-// deconnectees.
-const POPUP_AUTOPAN_PADDING_TOP_LEFT: L.PointExpression = [
-  ROUTE_PANEL_LAYOUT.widthPx + ROUTE_PANEL_LAYOUT.marginPx * 2,
-  16,
-];
-const POPUP_AUTOPAN_PADDING_BOTTOM_RIGHT: L.PointExpression = [16, ROUTE_PANEL_LAYOUT.maxHeightPx];
+// Geometrie des panneaux calculee par `computePopupAutoPanPadding` (lib
+// testee independamment) - recalculee a chaque rendu plutot que figee au
+// chargement du module, car une popup peut s'ouvrir apres un
+// redimensionnement de fenetre (rotation d'ecran, redimensionnement
+// navigateur) : seule la lecture de `window.innerWidth` reste ici, le calcul
+// lui-meme est une fonction pure sans dependance au DOM.
 
 // GeoJSON = [longitude, latitude], Leaflet = [latitude, longitude].
 function toLatLng([longitude, latitude]: number[]): [number, number] {
@@ -153,6 +145,12 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
     route?.geometry.coordinates.map(toLatLng) ?? null;
   const routeStartPosition = routePositions?.[0] ?? null;
 
+  // Recalculee a chaque rendu (pas de useMemo) : lire `window.innerWidth`
+  // ici, au moment du rendu, est ce qui permet a une popup ouverte apres un
+  // redimensionnement de fenetre d'obtenir la bonne marge (cf. commentaire
+  // sur `computePopupAutoPanPadding`).
+  const popupAutoPanPadding = computePopupAutoPanPadding(window.innerWidth);
+
   return (
     <>
       <BoulodromeSearch onSelectBoulodrome={selectBoulodrome} history={history} />
@@ -206,8 +204,8 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
               <Popup
                 autoClose={false}
                 closeOnClick={false}
-                autoPanPaddingTopLeft={POPUP_AUTOPAN_PADDING_TOP_LEFT}
-                autoPanPaddingBottomRight={POPUP_AUTOPAN_PADDING_BOTTOM_RIGHT}
+                autoPanPaddingTopLeft={popupAutoPanPadding.topLeft}
+                autoPanPaddingBottomRight={popupAutoPanPadding.bottomRight}
               >
                 <strong>{feature.properties.name}</strong>
                 {feature.properties.siteName && feature.properties.siteName !== feature.properties.name && (
@@ -253,8 +251,8 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
               icon={cafeIcon(cafe.properties.amenityType)}
             >
               <Popup
-                autoPanPaddingTopLeft={POPUP_AUTOPAN_PADDING_TOP_LEFT}
-                autoPanPaddingBottomRight={POPUP_AUTOPAN_PADDING_BOTTOM_RIGHT}
+                autoPanPaddingTopLeft={popupAutoPanPadding.topLeft}
+                autoPanPaddingBottomRight={popupAutoPanPadding.bottomRight}
               >
                 <strong>{cafe.properties.name}</strong>
                 <br />
