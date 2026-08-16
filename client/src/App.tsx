@@ -3,6 +3,7 @@ import { fetchBoulodromes, type BoulodromesFeatureCollection } from './api/boulo
 import { BoulodromesMap } from './components/BoulodromesMap'
 import { CheckboxFilter } from './components/CheckboxFilter'
 import { FreeAccessFilter } from './components/FreeAccessFilter'
+import { ThemeToggle } from './components/ThemeToggle'
 import { EQUIPMENT_TYPES, GROUND_TYPES } from './constants/boulodromeFilters'
 import './App.css'
 
@@ -29,6 +30,13 @@ function App() {
 
   return (
     <>
+      {/* Rendu ici plutot que dans BoulodromesMap : independant du chargement
+          des boulodromes (n'a besoin d'aucune donnee de l'API), il doit rester
+          monte et utilisable pendant le chargement/erreur, et ne pas se
+          demonter/remonter a chaque refetch declenche par un changement de
+          filtre (BoulodromesMap est demonte/remonte entre chaque etat
+          loading/success). */}
+      <ThemeToggle />
       <div className="fixed top-14 left-1/2 z-[1000] flex w-[280px] -translate-x-1/2 flex-col gap-2 text-sm md:top-3 md:left-[300px] md:w-auto md:translate-x-0">
         <CheckboxFilter
           legend="Nature du sol"

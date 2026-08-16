@@ -9,7 +9,6 @@ import type { BoulodromesFeatureCollection } from "../api/boulodromes";
 import type { RouteFeature } from "../api/route";
 import { BoulodromeSearch } from "./BoulodromeSearch";
 import { RoutePanel } from "./RoutePanel";
-import { ThemeToggle } from "./ThemeToggle";
 import { useBoulodromeHistory } from "../hooks/use-boulodrome-history";
 import { computePopupAutoPanPadding } from "../lib/popup-auto-pan";
 
@@ -154,7 +153,6 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
   return (
     <>
       <BoulodromeSearch onSelectBoulodrome={selectBoulodrome} history={history} />
-      <ThemeToggle />
       {selectedBoulodromeId && (
         <RoutePanel key={selectedBoulodromeId} boulodromeId={selectedBoulodromeId} onRouteChange={setRoute} />
       )}
