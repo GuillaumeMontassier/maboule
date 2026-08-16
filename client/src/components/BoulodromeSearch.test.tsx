@@ -188,6 +188,15 @@ describe("BoulodromeSearch", () => {
     expect(screen.getByRole("button", { name: "Effacer la recherche" })).toBeTruthy();
   });
 
+  it("n'affiche pas la croix d'effacement pour une saisie uniquement composée d'espaces", () => {
+    render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} />);
+    const input = screen.getByLabelText("Rechercher un boulodrome");
+
+    fireEvent.change(input, { target: { value: "  " } });
+
+    expect(screen.queryByRole("button", { name: "Effacer la recherche" })).toBeNull();
+  });
+
   it("cliquer la croix vide le champ, referme les résultats et rend le focus au champ", async () => {
     vi.mocked(fetchBoulodromes).mockResolvedValue(collectionWithBoulodrome("data-es:1", "ARSENAL"));
 

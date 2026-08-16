@@ -27,8 +27,16 @@ body {
 }
 
 /* Notre bouton croix (ticket 21) remplace le bouton d'effacement natif que
-   Chrome affiche sur input[type=search] des qu'il y a du texte : sans ce
-   masquage les deux se superposeraient. */
+   certains navigateurs affichent sur input[type=search] des qu'il y a du
+   texte (bouton "cancel" WebKit/Blink, "x" Firefox) : sans ce masquage les
+   deux se superposeraient. `appearance: textfield` desactive ces
+   decorations natives du champ de recherche (propriete standard, couvre
+   Firefox en plus du seul pseudo-element WebKit ci-dessous gardé en filet
+   de securite). */
+input[type="search"] {
+  appearance: textfield;
+}
+
 input[type="search"]::-webkit-search-cancel-button {
   appearance: none;
 }

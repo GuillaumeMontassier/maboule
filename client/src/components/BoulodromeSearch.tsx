@@ -80,6 +80,7 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [] }: Boulodrom
   // utilise pour le chargement des cafes dans BoulodromesMap).
   const latestRequestId = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const hasQuery = query.trim().length > 0;
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -148,9 +149,9 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [] }: Boulodrom
           placeholder="Rechercher un boulodrome…"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          className={`w-full rounded-md border border-gray-300 px-2 py-1.5 dark:border-gray-600 dark:placeholder-gray-400 ${SURFACE_CLASS} ${query.length > 0 ? "pr-7" : ""}`}
+          className={`w-full rounded-md border border-gray-300 px-2 py-1.5 dark:border-gray-600 dark:placeholder-gray-400 ${SURFACE_CLASS} ${hasQuery ? "pr-7" : ""}`}
         />
-        {query.length > 0 && (
+        {hasQuery && (
           <button
             type="button"
             onClick={handleClear}
@@ -161,7 +162,7 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [] }: Boulodrom
           </button>
         )}
       </form>
-      {isFocused && query.trim().length === 0 && history.length > 0 && (
+      {isFocused && !hasQuery && history.length > 0 && (
         <SelectableList
           items={history}
           keyOf={(entry) => entry.id}
