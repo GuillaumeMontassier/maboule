@@ -37,6 +37,18 @@ function App() {
           filtre (BoulodromesMap est demonte/remonte entre chaque etat
           loading/success). */}
       <ThemeToggle />
+      {state.status === 'loading' && <p className="status">Chargement des boulodromes…</p>}
+      {state.status === 'error' && <p className="status status-error">{state.message}</p>}
+      {state.status === 'success' && <BoulodromesMap features={state.data} />}
+      {/* Rendu après BoulodromesMap (donc après la recherche dans l'ordre du
+          DOM) plutôt qu'avant : la recherche est l'action principale,
+          positionnée en premier visuellement (haut-gauche desktop, au-dessus
+          des filtres en mobile) - l'ordre de tabulation doit suivre la même
+          hiérarchie plutôt que de faire passer les filtres (secondaires)
+          avant elle (ticket 15). Position CSS `fixed` : cet ordre n'a aucun
+          effet visuel, seulement sur l'ordre de tabulation et l'ordre de
+          peinture (sans incidence ici, aucun chevauchement entre panneaux à
+          l'état par défaut, cf. ticket 09/12). */}
       <div className="fixed top-14 left-1/2 z-[1000] flex w-[280px] -translate-x-1/2 flex-col gap-2 text-sm md:top-3 md:left-[300px] md:w-auto md:translate-x-0">
         <CheckboxFilter
           legend="Nature du sol"
@@ -52,9 +64,6 @@ function App() {
         />
         <FreeAccessFilter value={freeAccess} onChange={setFreeAccess} />
       </div>
-      {state.status === 'loading' && <p className="status">Chargement des boulodromes…</p>}
-      {state.status === 'error' && <p className="status status-error">{state.message}</p>}
-      {state.status === 'success' && <BoulodromesMap features={state.data} />}
     </>
   )
 }

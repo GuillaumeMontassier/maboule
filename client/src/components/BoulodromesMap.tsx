@@ -24,8 +24,8 @@ const POPUP_BADGE_CLASS = "mt-1 inline-block rounded-full px-2 py-0.5 text-[0.85
 // l'interpolation de template literal.
 const CAFE_DOT_COLOR_BY_AMENITY: Record<CafeAmenityType, string> = {
   cafe: "bg-amber-600",
-  bar: "bg-violet-600",
-  pub: "bg-rose-600",
+  bar: "bg-purple-500",
+  pub: "bg-orange-600",
 };
 
 function dotMarkerHtml(colorClass: string): string {
@@ -43,7 +43,7 @@ function cafeIcon(amenityType: CafeAmenityType): L.DivIcon {
 
 const routeStartIcon = L.divIcon({
   className: "route-start-marker",
-  html: dotMarkerHtml("bg-blue-600"),
+  html: dotMarkerHtml("bg-blue-500"),
   iconSize: [24, 24],
 });
 
@@ -175,11 +175,29 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
                 else boulodromeMarkers.current.delete(id);
               }}
               position={toLatLng(feature.geometry.coordinates)}
+              // Nom accessible du marqueur - sans ce prop, Leaflet retombe sur
+              // l'alt par defaut "Marker", identique pour les 64 marqueurs et
+              // inutilisable au clavier/lecteur d'ecran pour les distinguer
+              // (ticket 14).
+              alt={feature.properties.name}
               eventHandlers={{
                 // `selectBoulodrome` gere elle-meme la fermeture explicite de
                 // l'ancien popup (necessaire car `autoClose` est desactive
                 // ci-dessous sur la Popup - cf. commentaire `autoClose`).
                 click: () => selectBoulodrome(id),
+                // Le mixin popup de Leaflet ouvre le popup au clavier (Entree)
+                // via son propre gestionnaire interne `keypress` -> `_openPopup`
+                // (`leaflet-src.js`, mixin Popup), completement independant de
+                // l'evenement `click` ci-dessus : sans cet ecouteur explicite,
+                // l'activation clavier d'un marqueur ouvrait le popup Leaflet
+                // brut sans jamais appeler `selectBoulodrome` - donc sans
+                // panneau Itineraire, sans cafes a proximite et sans ajout a
+                // l'historique (ticket 13). Meme condition de declenchement
+                // que le mixin interne (touche Entree) pour rester synchronise
+                // avec le moment ou Leaflet ouvre effectivement le popup.
+                keypress: (event) => {
+                  if (event.originalEvent.key === "Enter") selectBoulodrome(id);
+                },
                 popupclose: () => setSelectedBoulodromeId((current) => (current === id ? null : current)),
               }}
             >
@@ -247,6 +265,15 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
               key={cafe.properties.id}
               position={toLatLng(cafe.geometry.coordinates)}
               icon={cafeIcon(cafe.properties.amenityType)}
+              // `alt` (contrairement au marqueur boulodrome ci-dessus) n'a
+              // aucun effet ici : Leaflet ne l'applique qu'aux icones <img>
+              // (`Marker._initIcon`, leaflet-src.js), or `cafeIcon` est un
+              // `L.divIcon` (un <div>). `title` en revanche est un attribut
+              // HTML standard sur toute balise et sert de nom accessible de
+              // repli en l'absence d'aria-label (ticket 14) - sans lui, ce
+              // marqueur (focusable au clavier, `role="button"` pose par
+              // Leaflet) n'a aucun nom accessible du tout.
+              title={cafe.properties.name}
             >
               <Popup
                 autoPanPaddingTopLeft={popupAutoPanPadding.topLeft}
@@ -272,7 +299,11 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
         {routePositions && routeStartPosition && (
           <>
             <Polyline positions={routePositions} />
-            <Marker position={routeStartPosition} icon={routeStartIcon} />
+            <Marker
+              position={routeStartPosition}
+              icon={routeStartIcon}
+              title="Point de départ de l'itinéraire"
+            />
           </>
         )}
       </MapContainer>

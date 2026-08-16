@@ -91,6 +91,21 @@ const sampleCafes: CafesFeatureCollection = {
         distanceMeters: 77,
       },
     },
+    {
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [2.3524, 48.8568] },
+      properties: {
+        id: "osm:2",
+        name: "Le Rétro",
+        amenityType: "pub",
+        street: null,
+        postalCode: null,
+        city: null,
+        source: "osm",
+        lastSyncedAt: "2026-08-06T10:00:00.000Z",
+        distanceMeters: 92,
+      },
+    },
   ],
 };
 
@@ -176,8 +191,10 @@ describe("BoulodromesMap - cafés à proximité", () => {
 
     await waitFor(() => expect(fetchCafesNearBoulodrome).toHaveBeenCalledWith("data-es:1"));
     await waitFor(() => expect(container.querySelector(".cafe-marker")).toBeTruthy());
-    // sampleCafes contient un établissement amenityType "bar" : couleur dédiée attendue.
-    expect(container.querySelector(".cafe-marker .bg-violet-600")).toBeTruthy();
+    // sampleCafes contient un bar et un pub : couleurs dédiées attendues,
+    // conformes à spec.md (ticket 16).
+    expect(container.querySelector(".cafe-marker .bg-purple-500")).toBeTruthy();
+    expect(container.querySelector(".cafe-marker .bg-orange-600")).toBeTruthy();
   });
 
   it("retire les marqueurs cafés du boulodrome précédent quand on en sélectionne un autre", async () => {
@@ -193,6 +210,57 @@ describe("BoulodromesMap - cafés à proximité", () => {
 
     await waitFor(() => expect(fetchCafesNearBoulodrome).toHaveBeenCalledWith("data-es:2"));
     await waitFor(() => expect(container.querySelector(".cafe-marker")).toBeNull());
+  });
+});
+
+describe("BoulodromesMap - accessibilité clavier", () => {
+  it("activer un marqueur au clavier (Entrée) déclenche la même sélection qu'un clic souris", async () => {
+    vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes);
+
+    const { container } = render(<BoulodromesMap features={sampleBoulodromes} />);
+    const [marker] = container.querySelectorAll(".leaflet-marker-icon");
+
+    // Meme evenement DOM que celui utilise par le mixin popup interne de
+    // Leaflet pour ouvrir le popup au clavier (`_onKeyPress`, keyCode 13) -
+    // cf. commentaire sur l'ecouteur `keypress` dans BoulodromesMap.tsx.
+    fireEvent.keyPress(marker, { key: "Enter", keyCode: 13 });
+
+    // Les trois effets d'une selection complete (cf. `selectBoulodrome`),
+    // absents avant le ticket 13 quand l'activation se faisait au clavier :
+    // cafes a proximite charges, panneau Itineraire affiche.
+    await waitFor(() => expect(fetchCafesNearBoulodrome).toHaveBeenCalledWith("data-es:1"));
+    expect(await screen.findByRole("heading", { name: "Itinéraire" })).toBeTruthy();
+  });
+
+  it("une touche autre qu'Entrée sur un marqueur ne déclenche pas de sélection", () => {
+    const { container } = render(<BoulodromesMap features={sampleBoulodromes} />);
+    const [marker] = container.querySelectorAll(".leaflet-marker-icon");
+
+    fireEvent.keyPress(marker, { key: "a", keyCode: 65 });
+
+    expect(fetchCafesNearBoulodrome).not.toHaveBeenCalled();
+  });
+});
+
+describe("BoulodromesMap - noms accessibles des marqueurs", () => {
+  it("chaque marqueur de boulodrome a un nom accessible distinct (nom du boulodrome, pas l'alt Leaflet par défaut)", () => {
+    const { container } = render(<BoulodromesMap features={sampleBoulodromes} />);
+    const markers = container.querySelectorAll(".leaflet-marker-icon");
+
+    expect(markers[0].getAttribute("alt")).toBe("TERRAIN DE PETANQUE");
+    expect(markers[1].getAttribute("alt")).toBe("AUTRE TERRAIN");
+    expect(markers[0].getAttribute("alt")).not.toBe(markers[1].getAttribute("alt"));
+  });
+
+  it("un marqueur de café a un nom accessible (title - alt n'a pas d'effet sur une icône div)", async () => {
+    vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(sampleCafes);
+
+    const { container } = render(<BoulodromesMap features={sampleBoulodromes} />);
+    const [marker] = container.querySelectorAll(".leaflet-marker-icon");
+    fireEvent.click(marker);
+
+    await waitFor(() => expect(container.querySelector(".cafe-marker")).toBeTruthy());
+    expect(container.querySelector(".cafe-marker")?.getAttribute("title")).toBe("La Royale");
   });
 });
 
@@ -268,6 +336,19 @@ describe("BoulodromesMap - recherche par mot-clé", () => {
   });
 });
 
+// Depuis le ticket 14, les marqueurs de boulodromes portent le nom du
+// boulodrome comme nom accessible (au lieu de l'alt Leaflet par defaut
+// "Marker") - `getByRole("button", { name })` seul devient donc ambigu des
+// qu'un boulodrome de l'historique/des resultats porte le meme nom qu'un
+// marqueur affiche sur la carte. Ce helper cible specifiquement l'entree de
+// liste (`<li><button>`), jamais le marqueur (qui n'est dans aucun `<ul>`).
+function getListButton(name: string): HTMLElement {
+  const candidates = screen.getAllByRole("button", { name });
+  const match = candidates.find((el) => el.closest("ul"));
+  if (!match) throw new Error(`Aucun bouton de liste nomme "${name}" trouve`);
+  return match;
+}
+
 describe("BoulodromesMap - historique de recherche", () => {
   it("sélectionner un boulodrome via son marqueur alimente l'historique affiché au focus du champ de recherche", async () => {
     vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes);
@@ -280,7 +361,7 @@ describe("BoulodromesMap - historique de recherche", () => {
     const input = screen.getByLabelText("Rechercher un boulodrome");
     fireEvent.focus(input);
 
-    expect(screen.getByRole("button", { name: "TERRAIN DE PETANQUE" })).toBeTruthy();
+    expect(getListButton("TERRAIN DE PETANQUE")).toBeTruthy();
   });
 
   it("sélectionner un boulodrome via la recherche alimente aussi l'historique", async () => {
@@ -298,7 +379,7 @@ describe("BoulodromesMap - historique de recherche", () => {
     fireEvent.change(input, { target: { value: "" } });
     fireEvent.focus(input);
 
-    expect(screen.getByRole("button", { name: "AUTRE TERRAIN" })).toBeTruthy();
+    expect(getListButton("AUTRE TERRAIN")).toBeTruthy();
   });
 
   it("cliquer une entrée de l'historique sélectionne directement ce boulodrome sur la carte", async () => {
@@ -311,7 +392,7 @@ describe("BoulodromesMap - historique de recherche", () => {
 
     const input = screen.getByLabelText("Rechercher un boulodrome");
     fireEvent.focus(input);
-    fireEvent.click(screen.getByRole("button", { name: "TERRAIN DE PETANQUE" }));
+    fireEvent.click(getListButton("TERRAIN DE PETANQUE"));
 
     await waitFor(() => expect(fetchCafesNearBoulodrome).toHaveBeenCalledWith("data-es:1"));
     expect(await screen.findByText(/75001/)).toBeTruthy();
@@ -329,7 +410,7 @@ describe("BoulodromesMap - historique de recherche", () => {
     render(<BoulodromesMap features={sampleBoulodromes} />);
     fireEvent.focus(screen.getByLabelText("Rechercher un boulodrome"));
 
-    expect(screen.getByRole("button", { name: "TERRAIN DE PETANQUE" })).toBeTruthy();
+    expect(getListButton("TERRAIN DE PETANQUE")).toBeTruthy();
   });
 });
 
@@ -350,7 +431,7 @@ describe("BoulodromesMap - itinéraire depuis la position GPS", () => {
       expect(fetchRoute).toHaveBeenCalledWith("data-es:1", { latitude: 48.85, longitude: 2.35 }),
     );
     await waitFor(() => expect(container.querySelector(".route-start-marker")).toBeTruthy());
-    expect(container.querySelector(".route-start-marker .bg-blue-600")).toBeTruthy();
+    expect(container.querySelector(".route-start-marker .bg-blue-500")).toBeTruthy();
     expect(await screen.findByText(/846 m/)).toBeTruthy();
   });
 

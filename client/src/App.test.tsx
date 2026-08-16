@@ -129,6 +129,23 @@ describe('App', () => {
     )
   })
 
+  it("place le champ de recherche avant les filtres dans l'ordre du DOM (donc de tabulation)", async () => {
+    vi.mocked(fetchBoulodromes).mockResolvedValue(sampleCollection)
+
+    const { container } = render(<App />)
+    await waitFor(() => expect(container.querySelector('.leaflet-container')).toBeTruthy())
+
+    const search = screen.getByLabelText('Rechercher un boulodrome')
+    const firstFilterCheckbox = screen.getByLabelText('Stabilisé/cendrée')
+
+    // `compareDocumentPosition` : DOCUMENT_POSITION_FOLLOWING indique que
+    // `firstFilterCheckbox` vient après `search` dans le document - donc que
+    // la recherche est bien avant les filtres, pas l'inverse (ticket 15).
+    expect(
+      search.compareDocumentPosition(firstFilterCheckbox) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy()
+  })
+
   it('recharge les boulodromes avec le filtre sélectionné dans le sélecteur "Accès"', async () => {
     vi.mocked(fetchBoulodromes).mockResolvedValue(sampleCollection)
 
