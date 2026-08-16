@@ -3,6 +3,7 @@ import { useCallback, useState } from "react";
 export interface BoulodromeHistoryEntry {
   id: string;
   name: string;
+  siteName: string | null;
 }
 
 const STORAGE_KEY = "boulodrome-search-history";
@@ -39,13 +40,20 @@ function readStoredHistory(): BoulodromeHistoryEntry[] {
     if (!raw) return [];
     const parsed: unknown = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
-    const validEntries = parsed.filter(
-      (entry): entry is BoulodromeHistoryEntry =>
-        typeof entry === "object" &&
-        entry !== null &&
-        typeof (entry as BoulodromeHistoryEntry).id === "string" &&
-        typeof (entry as BoulodromeHistoryEntry).name === "string",
-    );
+    const validEntries = parsed
+      .filter(
+        (entry): entry is Omit<BoulodromeHistoryEntry, "siteName"> & { siteName?: string | null } =>
+          typeof entry === "object" &&
+          entry !== null &&
+          typeof (entry as BoulodromeHistoryEntry).id === "string" &&
+          typeof (entry as BoulodromeHistoryEntry).name === "string" &&
+          ((entry as BoulodromeHistoryEntry).siteName === undefined ||
+            typeof (entry as BoulodromeHistoryEntry).siteName === "string" ||
+            (entry as BoulodromeHistoryEntry).siteName === null),
+      )
+      // Entrees stockees avant l'introduction de `siteName` (ticket 23) n'ont
+      // pas ce champ : traitees comme `siteName: null` plutot que rejetees.
+      .map((entry) => ({ ...entry, siteName: entry.siteName ?? null }));
     return normalizeHistory(validEntries);
   } catch {
     // localStorage indisponible (navigation privee, quota) ou contenu

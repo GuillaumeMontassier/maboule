@@ -135,8 +135,8 @@ describe("BoulodromeSearch", () => {
 
   it("affiche l'historique au focus du champ vide", () => {
     const history = [
-      { id: "data-es:2", name: "VINCENNES" },
-      { id: "data-es:1", name: "ARSENAL" },
+      { id: "data-es:2", name: "VINCENNES", siteName: null },
+      { id: "data-es:1", name: "ARSENAL", siteName: null },
     ];
 
     render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} history={history} />);
@@ -150,8 +150,59 @@ describe("BoulodromeSearch", () => {
     expect(screen.getByText("ARSENAL")).toBeTruthy();
   });
 
+  it("affiche siteName en evidence au-dessus de name quand l'entree en a un (ticket 23)", () => {
+    const history = [{ id: "data-es:1", name: "TERRAIN 1", siteName: "SQUARE DE TEST" }];
+
+    render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} history={history} />);
+    const input = screen.getByLabelText("Rechercher un boulodrome");
+
+    fireEvent.focus(input);
+
+    expect(screen.getByText("SQUARE DE TEST")).toBeTruthy();
+    expect(screen.getByText("TERRAIN 1")).toBeTruthy();
+  });
+
+  it("n'affiche que name quand siteName est null, sans ligne vide ni doublon (ticket 23)", () => {
+    const history = [{ id: "data-es:1", name: "ARSENAL", siteName: null }];
+
+    render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} history={history} />);
+    const input = screen.getByLabelText("Rechercher un boulodrome");
+
+    fireEvent.focus(input);
+
+    const entry = screen.getByRole("button", { name: "ARSENAL" });
+    expect(entry.textContent).toBe("ARSENAL");
+  });
+
+  it("n'affiche name qu'une seule fois quand siteName est egal a name (ticket 23)", () => {
+    const history = [{ id: "data-es:1", name: "ARSENAL", siteName: "ARSENAL" }];
+
+    render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} history={history} />);
+    const input = screen.getByLabelText("Rechercher un boulodrome");
+
+    fireEvent.focus(input);
+
+    const entry = screen.getByRole("button", { name: "ARSENAL" });
+    expect(entry.textContent).toBe("ARSENAL");
+  });
+
+  it("distingue par aria-label la croix de suppression de deux entrees qui partagent name mais pas siteName (ticket 23)", () => {
+    const history = [
+      { id: "data-es:1", name: "TERRAIN DE PETANQUE", siteName: "TEP LOUIS BRAILLE" },
+      { id: "data-es:2", name: "TERRAIN DE PETANQUE", siteName: "TEP MENILMONTANT" },
+    ];
+
+    render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} history={history} onRemoveFromHistory={vi.fn()} />);
+    const input = screen.getByLabelText("Rechercher un boulodrome");
+
+    fireEvent.focus(input);
+
+    expect(screen.getByRole("button", { name: "Supprimer TEP LOUIS BRAILLE TERRAIN DE PETANQUE de l'historique" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Supprimer TEP MENILMONTANT TERRAIN DE PETANQUE de l'historique" })).toBeTruthy();
+  });
+
   it("n'affiche pas l'historique une fois qu'une saisie est en cours", () => {
-    const history = [{ id: "data-es:1", name: "ARSENAL" }];
+    const history = [{ id: "data-es:1", name: "ARSENAL", siteName: null }];
 
     render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} history={history} />);
     const input = screen.getByLabelText("Rechercher un boulodrome");
@@ -165,7 +216,7 @@ describe("BoulodromeSearch", () => {
   });
 
   it("masque l'historique si le champ vide perd le focus", () => {
-    const history = [{ id: "data-es:1", name: "ARSENAL" }];
+    const history = [{ id: "data-es:1", name: "ARSENAL", siteName: null }];
 
     render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} history={history} />);
     const input = screen.getByLabelText("Rechercher un boulodrome");
@@ -179,7 +230,7 @@ describe("BoulodromeSearch", () => {
   });
 
   it("cliquer une entrée de l'historique sélectionne directement ce boulodrome", () => {
-    const history = [{ id: "data-es:1", name: "ARSENAL" }];
+    const history = [{ id: "data-es:1", name: "ARSENAL", siteName: null }];
     const onSelectBoulodrome = vi.fn();
 
     render(<BoulodromeSearch onSelectBoulodrome={onSelectBoulodrome} history={history} />);
@@ -193,8 +244,8 @@ describe("BoulodromeSearch", () => {
 
   it("affiche une croix de suppression nommant l'entree sur chaque ligne de l'historique", () => {
     const history = [
-      { id: "data-es:1", name: "ARSENAL" },
-      { id: "data-es:2", name: "VINCENNES" },
+      { id: "data-es:1", name: "ARSENAL", siteName: null },
+      { id: "data-es:2", name: "VINCENNES", siteName: null },
     ];
 
     render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} history={history} onRemoveFromHistory={vi.fn()} />);
@@ -210,7 +261,7 @@ describe("BoulodromeSearch", () => {
   });
 
   it("n'affiche pas de croix de suppression si aucun gestionnaire n'est fourni", () => {
-    const history = [{ id: "data-es:1", name: "ARSENAL" }];
+    const history = [{ id: "data-es:1", name: "ARSENAL", siteName: null }];
 
     render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} history={history} />);
     const input = screen.getByLabelText("Rechercher un boulodrome");
@@ -221,7 +272,7 @@ describe("BoulodromeSearch", () => {
   });
 
   it("cliquer la croix retire l'entree de l'historique sans selectionner le boulodrome", () => {
-    const history = [{ id: "data-es:1", name: "ARSENAL" }];
+    const history = [{ id: "data-es:1", name: "ARSENAL", siteName: null }];
     const onSelectBoulodrome = vi.fn();
     const onRemoveFromHistory = vi.fn();
 
@@ -243,8 +294,8 @@ describe("BoulodromeSearch", () => {
 
   it("garde le panneau d'historique ouvert (ne perd pas le focus du widget) apres suppression d'une entree qui avait le focus", () => {
     const history = [
-      { id: "data-es:1", name: "ARSENAL" },
-      { id: "data-es:2", name: "VINCENNES" },
+      { id: "data-es:1", name: "ARSENAL", siteName: null },
+      { id: "data-es:2", name: "VINCENNES", siteName: null },
     ];
 
     render(<ControlledHistorySearch initialHistory={history} />);
@@ -264,7 +315,7 @@ describe("BoulodromeSearch", () => {
   });
 
   it("cliquer le reste de la ligne d'historique selectionne toujours le boulodrome", () => {
-    const history = [{ id: "data-es:1", name: "ARSENAL" }];
+    const history = [{ id: "data-es:1", name: "ARSENAL", siteName: null }];
     const onSelectBoulodrome = vi.fn();
 
     render(<BoulodromeSearch onSelectBoulodrome={onSelectBoulodrome} history={history} onRemoveFromHistory={vi.fn()} />);

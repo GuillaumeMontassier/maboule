@@ -15,6 +15,13 @@ interface BoulodromeSearchProps {
   onRemoveFromHistory?: (id: string) => void;
 }
 
+// `siteName` egal a `name` n'apporte rien a afficher en plus (meme principe
+// que le popup de boulodrome dans BoulodromesMap.tsx, qui applique la meme
+// garde) : evite une ligne dupliquee au lieu d'un affichage a deux niveaux.
+function historySiteName(entry: BoulodromeHistoryEntry): string | null {
+  return entry.siteName && entry.siteName !== entry.name ? entry.siteName : null;
+}
+
 // Fond opaque partage par tous les panneaux flottants du widget (champ +
 // cards loading/error/vide/resultats) - un seul token pour les deux, plutot
 // que de dupliquer bg-white/dark:bg-gray-800 sur le champ separement (ticket
@@ -178,7 +185,17 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [], onRemoveFro
           items={history}
           keyOf={(entry) => entry.id}
           onSelect={(entry) => onSelectBoulodrome(entry.id)}
-          renderItem={(entry) => entry.name}
+          renderItem={(entry) =>
+            historySiteName(entry) ? (
+              <>
+                <strong>{historySiteName(entry)}</strong>
+                <br />
+                <span className="text-xs text-gray-600 dark:text-gray-400">{entry.name}</span>
+              </>
+            ) : (
+              entry.name
+            )
+          }
           renderSecondaryAction={
             onRemoveFromHistory &&
             ((entry) => (
@@ -194,7 +211,12 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [], onRemoveFro
                   // supprimee.
                   inputRef.current?.focus();
                 }}
-                aria-label={`Supprimer ${entry.name} de l'historique`}
+                // Nomme aussi siteName quand il differe de name (pas seulement
+                // name) : deux entrees peuvent partager le meme name sans
+                // partager le meme siteName (raison d'etre du ticket 23), et un
+                // aria-label identique sur leurs deux croix les rendrait
+                // indistinguables au clavier/lecteur d'ecran.
+                aria-label={`Supprimer ${historySiteName(entry) ? `${historySiteName(entry)} ${entry.name}` : entry.name} de l'historique`}
                 className={`px-2 ${ICON_BUTTON_CLASS}`}
               >
                 <X size={14} />

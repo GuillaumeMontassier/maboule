@@ -6,7 +6,7 @@
 
 **What to build:** Dans la liste d'historique, chaque entrée affiche actuellement le seul `name` du terrain. Distinguer visuellement `siteName` (nom du site abritant l'équipement, affiché en évidence) et `name` (nom du terrain, affiché en dessous, plus petit) — pour différencier deux entrées qui partagent l'un des deux champs mais pas l'autre.
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Origine :** Retour utilisateur du 2026-08-16.
 
@@ -16,9 +16,32 @@
 - Le type d'entrée d'historique doit inclure `siteName: string | null`, propagé dès l'appel qui ajoute une entrée à l'historique (actuellement seul `name` y est passé).
 - Le rendu de chaque ligne d'historique doit afficher `siteName` en évidence (poids/taille supérieurs) avec `name` en dessous, en plus petit — et se rabattre sur l'affichage de `name` seul (sans ligne vide au-dessus) quand `siteName` est `null`.
 
-- [ ] Une entrée d'historique ajoutée après ce changement stocke `siteName` en plus de `name`
-- [ ] Quand `siteName` est renseigné, l'entrée affiche `siteName` en gros au-dessus de `name` en plus petit
-- [ ] Quand `siteName` est `null`, l'entrée affiche uniquement `name` (pas de ligne vide, pas de doublon)
-- [ ] Les entrées déjà stockées avant ce changement (sans `siteName`) restent lisibles sans planter, traitées comme `siteName: null`
-- [ ] Tests du hook et du composant de recherche étendus pour couvrir l'affichage à deux niveaux et le cas `siteName: null`
-- [ ] Vérifié en navigateur réel (Playwright) : sélection d'un boulodrome avec site_name renseigné, apparition dans l'historique avec les deux niveaux de texte visibles et distincts
+- [x] Une entrée d'historique ajoutée après ce changement stocke `siteName` en plus de `name` —
+      `BoulodromeHistoryEntry` (`client/src/hooks/use-boulodrome-history.ts`) porte désormais
+      `siteName: string | null` ; propagé depuis `feature.properties.siteName` au moment de l'appel à
+      `addToHistory` (`client/src/components/BoulodromesMap.tsx`)
+- [x] Quand `siteName` est renseigné, l'entrée affiche `siteName` en gros au-dessus de `name` en plus petit —
+      `renderItem` de l'historique dans `BoulodromeSearch.tsx` : `<strong>{siteName}</strong>` suivi de
+      `name` dans un `<span className="text-xs …">`
+- [x] Quand `siteName` est `null`, l'entrée affiche uniquement `name` (pas de ligne vide, pas de doublon) —
+      même `renderItem`, branche `entry.siteName ? … : entry.name`
+- [x] Les entrées déjà stockées avant ce changement (sans `siteName`) restent lisibles sans planter, traitées
+      comme `siteName: null` — `readStoredHistory` accepte un `siteName` absent à la validation et le
+      normalise à `null` avant de rendre les entrées à `useState`
+- [x] Tests du hook et du composant de recherche étendus pour couvrir l'affichage à deux niveaux et le cas
+      `siteName: null` — hook : entrée avec `siteName`, entrée historique pré-migration sans `siteName` lue
+      comme `null` ; composant : rendu à deux niveaux quand `siteName` est renseigné, rendu à un seul niveau
+      (`textContent` exact, pas de doublon) quand il est `null`
+- [x] Vérifié en navigateur réel (Playwright) : sélection d'un boulodrome avec site_name renseigné (TEP LOUIS
+      BRAILLE / TERRAIN DE PETANQUE), apparition dans l'historique avec les deux niveaux de texte visibles et
+      distincts (capture d'écran), aucune erreur console
+
+Bugs trouvés et corrigés en cours de route (relevés par `/code-review`) :
+- `siteName` égal à `name` affichait la même chaîne deux fois (une en gras, une en petit) au lieu de se
+  rabattre sur un affichage à un seul niveau — même garde que celle déjà appliquée au popup de boulodrome
+  dans `BoulodromesMap.tsx` (`siteName !== name`), factorisée dans un helper `historySiteName` partagé par le
+  rendu et l'aria-label de la croix de suppression
+- L'aria-label de la croix de suppression d'une entrée d'historique ne nommait que `name`, identique pour
+  deux entrées partageant le même `name` mais pas le même `siteName` — exactement le cas d'ambiguïté que ce
+  ticket cherche à résoudre visuellement, mais laissé non résolu côté accessibilité ; corrigé en incluant
+  `siteName` dans l'aria-label quand il diffère de `name`

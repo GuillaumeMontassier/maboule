@@ -126,7 +126,7 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
     // recherche, historique lui-meme) puisqu'ils passent tous par cette
     // fonction.
     const feature = features.features.find((candidate) => candidate.properties.id === id);
-    if (feature) addToHistory({ id, name: feature.properties.name });
+    if (feature) addToHistory({ id, name: feature.properties.name, siteName: feature.properties.siteName });
 
     // Recentrage anime plutot qu'un saut instantane. Appeler `flyTo` alors
     // qu'une animation precedente est encore en cours ne pose pas de
