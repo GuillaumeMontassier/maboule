@@ -6,17 +6,21 @@
 
 **What to build:** Le bouton de bascule dark mode utilise des emoji (☀️/🌙) comme seule représentation visuelle. Introduire `lucide-react` comme dépendance du projet et l'utiliser pour ce bouton.
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Origine :** Retour utilisateur du 2026-08-16. Aucune bibliothèque d'icônes n'est présente dans le projet aujourd'hui (vérifié : ni lucide, ni heroicons, ni react-icons, ni SVG inline dans `client/src`) — seuls des emoji sont utilisés côté interface.
 
 **Décision retenue pour ce ticket :** `lucide-react` plutôt que des SVG écrits à la main — bibliothèque tree-shakeable, un import par icône utilisée, cohérence visuelle garantie. Ce choix est distinct de celui fait en phase 5 pour les marqueurs café sur la carte (emoji délibérément conservés, "pas de nouveaux assets") : il s'agissait de glyphes de carte, pas de contrôles d'interface. Les tickets 21 et 22 (icônes "croix") dépendent de cette dépendance étant en place.
 
-- [ ] `lucide-react` est une dépendance de `client/package.json`
-- [ ] Le bouton de bascule dark mode utilise les icônes `Sun`/`Moon` de lucide-react à la place des emoji ☀️/🌙
-- [ ] Taille et couleur de l'icône cohérentes avec le style actuel du bouton
-- [ ] `aria-label`/`title` déjà présents sur le bouton restent inchangés (changement purement visuel)
-- [ ] Vérifié en navigateur réel (Playwright), light et dark mode
+- [x] `lucide-react` est une dépendance de `client/package.json`
+- [x] Le bouton de bascule dark mode utilise les icônes `Sun`/`Moon` de lucide-react à la place des emoji ☀️/🌙
+- [x] Taille et couleur de l'icône cohérentes avec le style actuel du bouton — `size={18}` (≈ taille visuelle
+      de l'emoji `text-lg` précédent), couleur alignée sur la convention `text-gray-900 dark:text-gray-100`
+      déjà utilisée par les autres panneaux flottants (`CheckboxFilter`, `RoutePanel`, `FreeAccessFilter`)
+      plutôt que la couleur native de l'emoji
+- [x] `aria-label`/`title` déjà présents sur le bouton restent inchangés (changement purement visuel)
+- [x] Vérifié en navigateur réel (Playwright), light et dark mode — icône Moon nette en thème clair, icône
+      Sun nette en thème sombre, même position/taille de bouton qu'avant
 
 **Out of scope :**
 - Remplacer les emoji des marqueurs café sur la carte (☕/🍸/🍺) — hors scope, choix délibéré de la phase 5
