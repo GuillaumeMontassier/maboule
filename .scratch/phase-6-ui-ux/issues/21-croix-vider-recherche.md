@@ -8,12 +8,24 @@
 
 **Blocked by:** 19 — Dépendance icônes (lucide-react) + remplacement des emoji du bouton dark mode
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Origine :** Retour utilisateur du 2026-08-16.
 
-- [ ] Un bouton croix (icône lucide-react `X`) apparaît dans le champ recherche uniquement quand la saisie n'est pas vide
-- [ ] Cliquer dessus vide le champ, referme les listes de résultats affichées (retour à l'état idle), et rend le focus au champ de saisie
-- [ ] Le bouton est accessible au clavier (focusable, `aria-label` explicite du type "Effacer la recherche") et absent de l'ordre de tabulation quand il n'est pas affiché
-- [ ] La soumission du formulaire existante (touche Entrée sélectionne le premier résultat) n'est pas perturbée
-- [ ] Vérifié en navigateur réel (Playwright) : saisie → apparition de la croix → clic → champ vidé + focus conservé ; navigation clavier
+- [x] Un bouton croix (icône lucide-react `X`) apparaît dans le champ recherche uniquement quand la saisie n'est pas vide —
+      rendu conditionnel dans `client/src/components/BoulodromeSearch.tsx`, positionné en absolu dans un `<form
+      className="relative">` par-dessus l'input (`right-1.5`, centré verticalement), `size={16}`
+- [x] Cliquer dessus vide le champ, referme les listes de résultats affichées (retour à l'état idle), et rend le focus au champ de saisie —
+      `handleClear` remet `query` à `""`, ce qui repasse l'état en `idle` via l'effet de recherche existant
+      (`trimmed.length < MIN_QUERY_LENGTH`) sans logique dédiée, puis refocus l'input via une ref
+- [x] Le bouton est accessible au clavier (focusable, `aria-label` explicite du type "Effacer la recherche") et absent de l'ordre de tabulation quand il n'est pas affiché —
+      `aria-label="Effacer la recherche"` ; absent du DOM (pas seulement masqué) quand le champ est vide, donc
+      naturellement hors de l'ordre de tabulation ; vérifié Tab → focus sur la croix → Entrée l'active
+- [x] La soumission du formulaire existante (touche Entrée sélectionne le premier résultat) n'est pas perturbée —
+      bouton `type="button"`, ne déclenche pas `onSubmit`
+- [x] Vérifié en navigateur réel (Playwright) : saisie → apparition de la croix → clic → champ vidé + focus conservé ; navigation clavier
+      (light et dark mode)
+
+Note d'implémentation : le bouton natif d'effacement de Chrome sur `input[type=search]`
+(`::-webkit-search-cancel-button`) se serait superposé à notre croix dès qu'il y a du texte — masqué via
+`appearance: none` dans `client/src/index.css`.
