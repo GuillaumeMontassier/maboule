@@ -6,7 +6,7 @@
 
 **What to build:** Remplacer l'affichage actuel des filtres (cases à cocher dans un encart bordé avec légende, menu déroulant pour l'accès) par des pilules compactes façon Google Maps — boutons toggle arrondis, un par option, sans conteneur "fenêtre" autour de chaque groupe.
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Origine :** Retour utilisateur du 2026-08-16 (capture d'écran de référence : filtres Google Maps). Composants concernés : `CheckboxFilter` (nature du sol, type d'équipement — actuellement `fieldset` bordé avec légende et cases à cocher) et `FreeAccessFilter` (accès — actuellement un `<select>` à 3 états dans un encart bordé). Repositionnement responsive déjà traité au ticket 06 (`done`) — ce ticket ne touche pas le placement du bloc filtres, seulement le rendu de chaque filtre à l'intérieur.
 
@@ -15,14 +15,27 @@
 - Le filtre "Accès" (actuellement `<select>` à 3 états : Tous / Accès libre / Accès payant-restreint) devient une seule pilule toggle "Accès libre" : activée = filtre restreint à `freeAccess: true`, désactivée = pas de filtre (`freeAccess: undefined`). L'option "accès payant/restreint uniquement" disparaît de l'UI — changement de comportement assumé.
 - Pas d'icônes dans les pilules (contrairement à la référence Google Maps) sauf demande explicite ultérieure — texte seul.
 
-- [ ] Chaque option de filtre s'affiche comme une pilule compacte (fond arrondi, padding réduit), disposées en ligne horizontale avec retour à la ligne si la largeur manque, sans fieldset/légende/encart autour d'un groupe
-- [ ] L'état actif d'une pilule est visuellement distinct de l'état inactif, en light et dark mode
-- [ ] "Nature du sol" et "Type d'équipement" restent multi-sélection (plusieurs pilules actives simultanément dans le même groupe)
-- [ ] "Accès" devient une pilule unique "Accès libre" avec le comportement décrit ci-dessus
-- [ ] Le déclenchement d'une nouvelle recherche au clic sur une pilule (fetch avec filtres appliqués) est inchangé
-- [ ] Le positionnement responsive existant (desktop : même rangée que la recherche ; mobile : sous la recherche) reste correct
-- [ ] Tests existants sur la sélection de filtres (`App.test.tsx`) adaptés au nouveau rendu sans changer ce qu'ils vérifient fonctionnellement
-- [ ] Vérifié en navigateur réel (Playwright) : sélection multiple sur un groupe, toggle de la pilule "Accès libre", rendu en light/dark mode et desktop/mobile
+- [x] Chaque option de filtre s'affiche comme une pilule compacte (fond arrondi, padding réduit), disposées en ligne horizontale avec retour à la ligne si la largeur manque, sans fieldset/légende/encart autour d'un groupe —
+      `PillFilterGroup` (`client/src/components/PillFilterGroup.tsx`, remplace `CheckboxFilter`) rend chaque
+      option comme un `<button>` à plat (pas de wrapper visuel), classes pilule partagées dans
+      `client/src/components/pillStyles.ts`
+- [x] L'état actif d'une pilule est visuellement distinct de l'état inactif, en light et dark mode — `aria-pressed`
+      pilote un fond bleu plein (actif) vs gris neutre (inactif), variantes dark incluses ; vérifié visuellement
+- [x] "Nature du sol" et "Type d'équipement" restent multi-sélection (plusieurs pilules actives simultanément dans le même groupe)
+- [x] "Accès" devient une pilule unique "Accès libre" avec le comportement décrit ci-dessus — `FreeAccessFilter`
+      n'est plus un `<select>` à 3 états mais un bouton toggle unique
+- [x] Le déclenchement d'une nouvelle recherche au clic sur une pilule (fetch avec filtres appliqués) est inchangé
+- [x] Le positionnement responsive existant (desktop : même rangée que la recherche ; mobile : sous la recherche) reste correct
+- [x] Tests existants sur la sélection de filtres (`App.test.tsx`) adaptés au nouveau rendu (sélection par rôle/nom
+      de bouton plutôt que par label de case à cocher) sans changer ce qu'ils vérifient fonctionnellement ; ajout
+      d'un test de désactivation de la pilule "Accès libre" et d'une assertion `aria-pressed`
+- [x] Vérifié en navigateur réel (Playwright) : sélection multiple sur un groupe, toggle de la pilule "Accès libre", rendu en light/dark mode et desktop/mobile
+
+Note d'implémentation (a11y) : chaque pilule multi-sélection porte un `aria-label` de la forme
+`"<groupe> : <option>"` (ex. "Nature du sol : Sable") plutôt qu'un `role="group"` englobant sur le conteneur
+- un groupe ARIA posé sur un élément `display: contents` (nécessaire pour laisser les pilules de tous les
+groupes s'aligner à plat dans la même rangée flex du parent) peut voir ses attributs ignorés par certaines
+combinaisons navigateur/lecteur d'écran ; porter le contexte directement sur chaque bouton evite ce risque.
 
 **Out of scope :**
 - Repositionner globalement le bloc filtres (déjà traité ticket 06)
