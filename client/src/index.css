@@ -25,3 +25,10 @@ body {
      au ticket suivant. */
   @apply bg-white dark:bg-gray-900;
 }
+
+/* Notre bouton croix (ticket 21) remplace le bouton d'effacement natif que
+   Chrome affiche sur input[type=search] des qu'il y a du texte : sans ce
+   masquage les deux se superposeraient. */
+input[type="search"]::-webkit-search-cancel-button {
+  appearance: none;
+}

@@ -173,6 +173,38 @@ describe("BoulodromeSearch", () => {
     expect(onSelectBoulodrome).toHaveBeenCalledExactlyOnceWith("data-es:1");
   });
 
+  it("n'affiche pas la croix d'effacement quand le champ est vide", () => {
+    render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} />);
+
+    expect(screen.queryByRole("button", { name: "Effacer la recherche" })).toBeNull();
+  });
+
+  it("affiche la croix d'effacement dès que le champ contient du texte", () => {
+    render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} />);
+    const input = screen.getByLabelText("Rechercher un boulodrome");
+
+    fireEvent.change(input, { target: { value: "a" } });
+
+    expect(screen.getByRole("button", { name: "Effacer la recherche" })).toBeTruthy();
+  });
+
+  it("cliquer la croix vide le champ, referme les résultats et rend le focus au champ", async () => {
+    vi.mocked(fetchBoulodromes).mockResolvedValue(collectionWithBoulodrome("data-es:1", "ARSENAL"));
+
+    render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} />);
+    const input = screen.getByLabelText("Rechercher un boulodrome");
+
+    fireEvent.change(input, { target: { value: "ars" } });
+    await screen.findByText("ARSENAL");
+
+    fireEvent.click(screen.getByRole("button", { name: "Effacer la recherche" }));
+
+    expect((input as HTMLInputElement).value).toBe("");
+    expect(screen.queryByText("ARSENAL")).toBeNull();
+    expect(document.activeElement).toBe(input);
+    expect(screen.queryByRole("button", { name: "Effacer la recherche" })).toBeNull();
+  });
+
   it("Entrée sélectionne directement le premier résultat affiché", async () => {
     vi.mocked(fetchBoulodromes).mockResolvedValue({
       type: "FeatureCollection",

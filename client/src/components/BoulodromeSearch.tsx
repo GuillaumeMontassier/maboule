@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FocusEvent, type FormEvent, type ReactNode } from "react";
+import { X } from "lucide-react";
 import { fetchBoulodromes, type BoulodromesFeatureCollection } from "../api/boulodromes";
 import type { BoulodromeHistoryEntry } from "../hooks/use-boulodrome-history";
 
@@ -78,6 +79,7 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [] }: Boulodrom
   // sa reponse arrive apres coup (meme principe que le flag `cancelled`
   // utilise pour le chargement des cafes dans BoulodromesMap).
   const latestRequestId = useRef(0);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const trimmed = query.trim();
@@ -116,6 +118,14 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [] }: Boulodrom
     }
   }
 
+  // Vider le champ met `query` a "" ce qui repasse l'etat en idle via
+  // l'effet ci-dessus (trimmed.length < MIN_QUERY_LENGTH) : referme donc les
+  // listes de resultats sans logique dediee.
+  function handleClear() {
+    setQuery("");
+    inputRef.current?.focus();
+  }
+
   function handleBlur(event: FocusEvent<HTMLDivElement>) {
     if (!event.currentTarget.contains(event.relatedTarget)) {
       setIsFocused(false);
@@ -130,15 +140,26 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [] }: Boulodrom
       onFocus={() => setIsFocused(true)}
       onBlur={handleBlur}
     >
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="relative">
         <input
+          ref={inputRef}
           type="search"
           aria-label="Rechercher un boulodrome"
           placeholder="Rechercher un boulodrome…"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          className={`w-full rounded-md border border-gray-300 px-2 py-1.5 dark:border-gray-600 dark:placeholder-gray-400 ${SURFACE_CLASS}`}
+          className={`w-full rounded-md border border-gray-300 px-2 py-1.5 dark:border-gray-600 dark:placeholder-gray-400 ${SURFACE_CLASS} ${query.length > 0 ? "pr-7" : ""}`}
         />
+        {query.length > 0 && (
+          <button
+            type="button"
+            onClick={handleClear}
+            aria-label="Effacer la recherche"
+            className="absolute top-1/2 right-1.5 -translate-y-1/2 cursor-pointer text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+          >
+            <X size={16} />
+          </button>
+        )}
       </form>
       {isFocused && query.trim().length === 0 && history.length > 0 && (
         <SelectableList
