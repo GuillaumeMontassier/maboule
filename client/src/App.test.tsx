@@ -47,6 +47,30 @@ describe('App', () => {
     expect(screen.getByText(/chargement/i)).toBeTruthy()
   })
 
+  it('affiche le bouton de bascule dark mode dès le chargement initial (indépendant des boulodromes)', () => {
+    vi.mocked(fetchBoulodromes).mockReturnValue(new Promise(() => {}))
+
+    render(<App />)
+
+    expect(screen.getByRole('button', { name: 'Passer au thème sombre' })).toBeTruthy()
+  })
+
+  it("garde le même bouton de bascule dark mode monté pendant un rechargement déclenché par un filtre (pas de démontage/remontage)", async () => {
+    vi.mocked(fetchBoulodromes).mockResolvedValue(sampleCollection)
+
+    render(<App />)
+    await waitFor(() => expect(fetchBoulodromes).toHaveBeenCalledTimes(1))
+
+    const toggleBefore = screen.getByRole('button', { name: 'Passer au thème sombre' })
+
+    fireEvent.click(screen.getByLabelText('Sable'))
+
+    await waitFor(() => expect(fetchBoulodromes).toHaveBeenCalledTimes(2))
+    const toggleAfter = screen.getByRole('button', { name: 'Passer au thème sombre' })
+
+    expect(toggleAfter).toBe(toggleBefore)
+  })
+
   it('affiche la carte une fois les boulodromes chargés', async () => {
     vi.mocked(fetchBoulodromes).mockResolvedValue(sampleCollection)
 
