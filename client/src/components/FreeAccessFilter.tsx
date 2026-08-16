@@ -1,28 +1,25 @@
-import type { ChangeEvent } from "react";
+import { PILL_ACTIVE_CLASS, PILL_BASE_CLASS, PILL_INACTIVE_CLASS } from "./pillStyles";
 
 interface FreeAccessFilterProps {
   value: boolean | undefined;
   onChange: (value: boolean | undefined) => void;
 }
 
+// Le `<select>` à 3 états (Tous / Accès libre / Accès payant-restreint)
+// devient une seule pilule toggle (ticket 20, décision de triage) : l'option
+// "accès payant/restreint uniquement" disparaît de l'UI. Actif = filtre
+// `freeAccess: true`, inactif = pas de filtre (`freeAccess: undefined`).
 export function FreeAccessFilter({ value, onChange }: FreeAccessFilterProps) {
-  function handleChange(event: ChangeEvent<HTMLSelectElement>) {
-    const raw = event.target.value;
-    onChange(raw === "" ? undefined : raw === "true");
-  }
+  const active = value === true;
 
   return (
-    <label className="flex flex-col gap-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-gray-900 shadow-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">
-      Accès
-      <select
-        value={value === undefined ? "" : String(value)}
-        onChange={handleChange}
-        className="dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-      >
-        <option value="">Tous</option>
-        <option value="true">Accès libre</option>
-        <option value="false">Accès payant / restreint</option>
-      </select>
-    </label>
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={() => onChange(active ? undefined : true)}
+      className={`${PILL_BASE_CLASS} ${active ? PILL_ACTIVE_CLASS : PILL_INACTIVE_CLASS}`}
+    >
+      Accès libre
+    </button>
   );
 }

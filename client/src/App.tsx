@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { fetchBoulodromes, type BoulodromesFeatureCollection } from './api/boulodromes'
 import { BoulodromesMap } from './components/BoulodromesMap'
-import { CheckboxFilter } from './components/CheckboxFilter'
+import { PillFilterGroup } from './components/PillFilterGroup'
 import { FreeAccessFilter } from './components/FreeAccessFilter'
 import { ThemeToggle } from './components/ThemeToggle'
 import { EQUIPMENT_TYPES, GROUND_TYPES } from './constants/boulodromeFilters'
@@ -49,15 +49,15 @@ function App() {
           effet visuel, seulement sur l'ordre de tabulation et l'ordre de
           peinture (sans incidence ici, aucun chevauchement entre panneaux à
           l'état par défaut, cf. ticket 09/12). */}
-      <div className="fixed top-14 left-1/2 z-[1000] flex w-[280px] -translate-x-1/2 flex-col gap-2 text-sm md:top-3 md:left-[300px] md:w-auto md:translate-x-0">
-        <CheckboxFilter
-          legend="Nature du sol"
+      <div className="fixed top-14 left-1/2 z-[1000] flex w-[280px] -translate-x-1/2 flex-row flex-wrap gap-1.5 text-sm md:top-3 md:left-[300px] md:w-auto md:translate-x-0">
+        <PillFilterGroup
+          groupLabel="Nature du sol"
           options={GROUND_TYPES}
           selected={groundTypes}
           onChange={setGroundTypes}
         />
-        <CheckboxFilter
-          legend="Type d'équipement"
+        <PillFilterGroup
+          groupLabel="Type d'équipement"
           options={EQUIPMENT_TYPES}
           selected={equipmentTypes}
           onChange={setEquipmentTypes}

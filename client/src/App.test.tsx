@@ -63,7 +63,7 @@ describe('App', () => {
 
     const toggleBefore = screen.getByRole('button', { name: 'Passer au thème sombre' })
 
-    fireEvent.click(screen.getByLabelText('Sable'))
+    fireEvent.click(screen.getByRole('button', { name: 'Nature du sol : Sable' }))
 
     await waitFor(() => expect(fetchBoulodromes).toHaveBeenCalledTimes(2))
     const toggleAfter = screen.getByRole('button', { name: 'Passer au thème sombre' })
@@ -89,7 +89,7 @@ describe('App', () => {
     expect(await screen.findByText(/erreur lors du chargement/i)).toBeTruthy()
   })
 
-  it('recharge les boulodromes avec le filtre sélectionné quand une case "nature du sol" est cochée', async () => {
+  it('recharge les boulodromes avec le filtre sélectionné quand une pilule "nature du sol" est activée', async () => {
     vi.mocked(fetchBoulodromes).mockResolvedValue(sampleCollection)
 
     render(<App />)
@@ -101,7 +101,8 @@ describe('App', () => {
       }),
     )
 
-    fireEvent.click(screen.getByLabelText('Sable'))
+    const sablePill = screen.getByRole('button', { name: 'Nature du sol : Sable' })
+    fireEvent.click(sablePill)
 
     await waitFor(() =>
       expect(fetchBoulodromes).toHaveBeenCalledWith({
@@ -110,15 +111,18 @@ describe('App', () => {
         freeAccess: undefined,
       }),
     )
+    // `aria-pressed` porte l'état actif/inactif de la pilule (ticket 20) -
+    // c'est aussi ce qui pilote son style visuellement distinct.
+    expect(sablePill.getAttribute('aria-pressed')).toBe('true')
   })
 
-  it('recharge les boulodromes avec le filtre sélectionné quand une case "type d\'équipement" est cochée', async () => {
+  it('recharge les boulodromes avec le filtre sélectionné quand une pilule "type d\'équipement" est activée', async () => {
     vi.mocked(fetchBoulodromes).mockResolvedValue(sampleCollection)
 
     render(<App />)
     await waitFor(() => expect(fetchBoulodromes).toHaveBeenCalledTimes(1))
 
-    fireEvent.click(screen.getByLabelText('Découvert'))
+    fireEvent.click(screen.getByRole('button', { name: "Type d'équipement : Découvert" }))
 
     await waitFor(() =>
       expect(fetchBoulodromes).toHaveBeenCalledWith({
@@ -136,29 +140,56 @@ describe('App', () => {
     await waitFor(() => expect(container.querySelector('.leaflet-container')).toBeTruthy())
 
     const search = screen.getByLabelText('Rechercher un boulodrome')
-    const firstFilterCheckbox = screen.getByLabelText('Stabilisé/cendrée')
+    const firstFilterPill = screen.getByRole('button', { name: 'Nature du sol : Stabilisé/cendrée' })
 
     // `compareDocumentPosition` : DOCUMENT_POSITION_FOLLOWING indique que
-    // `firstFilterCheckbox` vient après `search` dans le document - donc que
+    // `firstFilterPill` vient après `search` dans le document - donc que
     // la recherche est bien avant les filtres, pas l'inverse (ticket 15).
     expect(
-      search.compareDocumentPosition(firstFilterCheckbox) & Node.DOCUMENT_POSITION_FOLLOWING,
+      search.compareDocumentPosition(firstFilterPill) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy()
   })
 
-  it('recharge les boulodromes avec le filtre sélectionné dans le sélecteur "Accès"', async () => {
+  it('recharge les boulodromes avec le filtre appliqué quand la pilule "Accès libre" est activée', async () => {
     vi.mocked(fetchBoulodromes).mockResolvedValue(sampleCollection)
 
     render(<App />)
     await waitFor(() => expect(fetchBoulodromes).toHaveBeenCalledTimes(1))
 
-    fireEvent.change(screen.getByLabelText('Accès'), { target: { value: 'true' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Accès libre' }))
 
     await waitFor(() =>
       expect(fetchBoulodromes).toHaveBeenCalledWith({
         groundTypes: [],
         equipmentTypes: [],
         freeAccess: true,
+      }),
+    )
+  })
+
+  it('retire le filtre "Accès libre" en désactivant à nouveau la pilule', async () => {
+    vi.mocked(fetchBoulodromes).mockResolvedValue(sampleCollection)
+
+    render(<App />)
+    await waitFor(() => expect(fetchBoulodromes).toHaveBeenCalledTimes(1))
+
+    const pill = screen.getByRole('button', { name: 'Accès libre' })
+    fireEvent.click(pill)
+    await waitFor(() =>
+      expect(fetchBoulodromes).toHaveBeenCalledWith({
+        groundTypes: [],
+        equipmentTypes: [],
+        freeAccess: true,
+      }),
+    )
+
+    fireEvent.click(pill)
+
+    await waitFor(() =>
+      expect(fetchBoulodromes).toHaveBeenCalledWith({
+        groundTypes: [],
+        equipmentTypes: [],
+        freeAccess: undefined,
       }),
     )
   })
