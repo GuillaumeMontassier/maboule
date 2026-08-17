@@ -259,9 +259,91 @@ describe("BoulodromesMap - noms accessibles des marqueurs", () => {
     const { container } = render(<BoulodromesMap features={sampleBoulodromes} />);
     const markers = container.querySelectorAll(".leaflet-marker-icon");
 
-    expect(markers[0].getAttribute("alt")).toBe("TERRAIN DE PETANQUE");
-    expect(markers[1].getAttribute("alt")).toBe("AUTRE TERRAIN");
+    expect(markers[0].getAttribute("alt")).toBe("TERRAIN DE PETANQUE, 1 rue de Paris");
+    expect(markers[1].getAttribute("alt")).toBe("AUTRE TERRAIN, 2 rue de Paris");
     expect(markers[0].getAttribute("alt")).not.toBe(markers[1].getAttribute("alt"));
+  });
+
+  it("deux boulodromes de name identique mais de siteName/rue différents obtiennent un alt différent (ticket 26)", () => {
+    const sameNameDifferentSites: BoulodromesFeatureCollection = {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [2.3522, 48.8566] },
+          properties: {
+            id: "data-es:1",
+            name: "TERRAIN DE PETANQUE",
+            street: "1 rue de Paris",
+            postalCode: "75001",
+            city: "Paris",
+            inseeCode: null,
+            siteName: "TEP LOUIS BRAILLE",
+            equipmentType: null,
+            groundType: null,
+            freeAccess: null,
+            source: "data-es",
+            lastSyncedAt: "2026-07-24T10:00:00.000Z",
+          },
+        },
+        {
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [2.36, 48.86] },
+          properties: {
+            id: "data-es:2",
+            name: "TERRAIN DE PETANQUE",
+            street: "2 rue de Paris",
+            postalCode: "75002",
+            city: "Paris",
+            inseeCode: null,
+            siteName: "TEP MENILMONTANT",
+            equipmentType: null,
+            groundType: null,
+            freeAccess: null,
+            source: "data-es",
+            lastSyncedAt: "2026-07-24T10:00:00.000Z",
+          },
+        },
+      ],
+    };
+
+    const { container } = render(<BoulodromesMap features={sameNameDifferentSites} />);
+    const markers = container.querySelectorAll(".leaflet-marker-icon");
+
+    expect(markers[0].getAttribute("alt")).toBe("TERRAIN DE PETANQUE – TEP LOUIS BRAILLE, 1 rue de Paris");
+    expect(markers[1].getAttribute("alt")).toBe("TERRAIN DE PETANQUE – TEP MENILMONTANT, 2 rue de Paris");
+    expect(markers[0].getAttribute("alt")).not.toBe(markers[1].getAttribute("alt"));
+  });
+
+  it("omet la virgule et la rue quand celle-ci est vide plutôt que de laisser une virgule traînante", () => {
+    const noStreet: BoulodromesFeatureCollection = {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          geometry: { type: "Point", coordinates: [2.3522, 48.8566] },
+          properties: {
+            id: "data-es:1",
+            name: "TERRAIN DE PETANQUE",
+            street: "",
+            postalCode: "75001",
+            city: "Paris",
+            inseeCode: null,
+            siteName: null,
+            equipmentType: null,
+            groundType: null,
+            freeAccess: null,
+            source: "data-es",
+            lastSyncedAt: "2026-07-24T10:00:00.000Z",
+          },
+        },
+      ],
+    };
+
+    const { container } = render(<BoulodromesMap features={noStreet} />);
+    const [marker] = container.querySelectorAll(".leaflet-marker-icon");
+
+    expect(marker.getAttribute("alt")).toBe("TERRAIN DE PETANQUE");
   });
 
   it("un marqueur de café a un nom accessible (title - alt n'a pas d'effet sur une icône div)", async () => {

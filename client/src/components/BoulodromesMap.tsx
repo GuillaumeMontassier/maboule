@@ -5,12 +5,13 @@ import { useEffect, useRef, useState } from "react";
 import { MapContainer, Marker, Polyline, Popup, TileLayer, ZoomControl } from "react-leaflet";
 import { fetchCafesNearBoulodrome } from "../api/cafes";
 import type { CafeAmenityType, CafesFeatureCollection } from "../api/cafes";
-import type { BoulodromesFeatureCollection } from "../api/boulodromes";
+import type { BoulodromeProperties, BoulodromesFeatureCollection } from "../api/boulodromes";
 import type { RouteFeature } from "../api/route";
 import { BoulodromeSearch } from "./BoulodromeSearch";
 import { RoutePanel } from "./RoutePanel";
 import { useBoulodromeHistory } from "../hooks/use-boulodrome-history";
 import { computePopupAutoPanPadding } from "../lib/popup-auto-pan";
+import { distinctSiteName } from "../lib/site-name";
 
 const PARIS_CENTER: [number, number] = [48.8566, 2.3522];
 
@@ -57,6 +58,23 @@ const routeStartIcon = L.divIcon({
 // GeoJSON = [longitude, latitude], Leaflet = [latitude, longitude].
 function toLatLng([longitude, latitude]: number[]): [number, number] {
   return [latitude, longitude];
+}
+
+// Nom accessible du marqueur (`alt`) - `name` seul est un champ de type
+// d'equipement generique ("TERRAIN DE PETANQUE", "BOULODROME"), partage par
+// la plupart des 64 boulodromes de la base (ticket 26). On y ajoute
+// `siteName` (quand il differe, meme garde que la popup ci-dessous et
+// l'historique de recherche du ticket 23, via `distinctSiteName`) puis la
+// rue pour obtenir un texte qui distingue reellement un boulodrome d'un
+// autre au clavier/lecteur d'ecran - best effort, sans garantie d'unicite
+// absolue en cas de doublon exact de nom et de rue. La rue n'est ajoutee que
+// si elle est renseignee, pour eviter une virgule trainante lue par le
+// lecteur d'ecran sur un enregistrement dont l'adresse est vide.
+function accessibleMarkerName(properties: BoulodromeProperties): string {
+  const siteName = distinctSiteName(properties.name, properties.siteName);
+  const street = properties.street.trim();
+  const base = siteName ? `${properties.name} – ${siteName}` : properties.name;
+  return street ? `${base}, ${street}` : base;
 }
 
 interface BoulodromesMapProps {
@@ -171,6 +189,7 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
         <ZoomControl position="bottomright" />
         {features.features.map((feature) => {
           const id = feature.properties.id;
+          const popupSiteName = distinctSiteName(feature.properties.name, feature.properties.siteName);
           return (
             <Marker
               key={id}
@@ -182,8 +201,10 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
               // Nom accessible du marqueur - sans ce prop, Leaflet retombe sur
               // l'alt par defaut "Marker", identique pour les 64 marqueurs et
               // inutilisable au clavier/lecteur d'ecran pour les distinguer
-              // (ticket 14).
-              alt={feature.properties.name}
+              // (ticket 14). `accessibleMarkerName` combine name/siteName et
+              // la rue pour que cette distinction soit reelle, pas seulement
+              // vis-a-vis d'un `<img>` sans nom (ticket 26).
+              alt={accessibleMarkerName(feature.properties)}
               eventHandlers={{
                 // `selectBoulodrome` gere elle-meme la fermeture explicite de
                 // l'ancien popup (necessaire car `autoClose` est desactive
@@ -236,10 +257,10 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
                 autoPanPaddingBottomRight={popupAutoPanPadding.bottomRight}
               >
                 <strong>{feature.properties.name}</strong>
-                {feature.properties.siteName && feature.properties.siteName !== feature.properties.name && (
+                {popupSiteName && (
                   <>
                     <br />
-                    {feature.properties.siteName}
+                    {popupSiteName}
                   </>
                 )}
                 <br />

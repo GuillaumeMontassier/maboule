@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FocusEvent, type FormEvent, type Reac
 import { X } from "lucide-react";
 import { fetchBoulodromes, type BoulodromesFeatureCollection } from "../api/boulodromes";
 import type { BoulodromeHistoryEntry } from "../hooks/use-boulodrome-history";
+import { distinctSiteName } from "../lib/site-name";
 
 type SearchState =
   | { status: "idle" }
@@ -15,11 +16,12 @@ interface BoulodromeSearchProps {
   onRemoveFromHistory?: (id: string) => void;
 }
 
-// `siteName` egal a `name` n'apporte rien a afficher en plus (meme principe
-// que le popup de boulodrome dans BoulodromesMap.tsx, qui applique la meme
-// garde) : evite une ligne dupliquee au lieu d'un affichage a deux niveaux.
+// `siteName` egal a `name` n'apporte rien a afficher en plus - `distinctSiteName`
+// applique la meme garde que le popup et le nom accessible des marqueurs dans
+// BoulodromesMap.tsx, pour eviter une ligne dupliquee au lieu d'un affichage a
+// deux niveaux.
 function historySiteName(entry: BoulodromeHistoryEntry): string | null {
-  return entry.siteName && entry.siteName !== entry.name ? entry.siteName : null;
+  return distinctSiteName(entry.name, entry.siteName);
 }
 
 // Fond opaque partage par tous les panneaux flottants du widget (champ +
