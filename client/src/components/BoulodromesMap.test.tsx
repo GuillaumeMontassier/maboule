@@ -433,6 +433,12 @@ describe("BoulodromesMap - itinéraire depuis la position GPS", () => {
     await waitFor(() => expect(container.querySelector(".route-start-marker")).toBeTruthy());
     expect(container.querySelector(".route-start-marker .bg-blue-500")).toBeTruthy();
     expect(await screen.findByText(/846 m/)).toBeTruthy();
+    // Nom accessible du marqueur de depart d'itineraire (ticket 14) - meme
+    // raison qu'un marqueur cafe : icone div, `alt` sans effet, `title` sert
+    // de nom accessible de repli.
+    expect(container.querySelector(".route-start-marker")?.getAttribute("title")).toBe(
+      "Point de départ de l'itinéraire",
+    );
   });
 
   it("permission GPS refusée -> message affiché, aucun appel réseau", async () => {
