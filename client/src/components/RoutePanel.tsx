@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Search } from "lucide-react";
 import { fetchRoute, type RouteFeature } from "../api/route";
 import { fetchGeocodeCandidates, type GeocodeCandidate } from "../api/geocode";
 
@@ -188,9 +189,11 @@ export function RoutePanel({ boulodromeId, onRouteChange }: RoutePanelProps) {
         <button
           type="submit"
           disabled={busy}
-          className="w-auto cursor-pointer rounded-md border border-gray-300 bg-gray-100 px-2 py-1.5 whitespace-nowrap disabled:cursor-default disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700"
+          aria-label="Rechercher l'adresse"
+          title="Rechercher l'adresse"
+          className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-md border border-gray-300 bg-gray-100 disabled:cursor-default disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700"
         >
-          Rechercher l'adresse
+          <Search size={16} />
         </button>
       </form>
       {state.status === "locating" && <p className="mt-2">Récupération de votre position…</p>}
