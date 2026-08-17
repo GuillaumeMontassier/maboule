@@ -45,10 +45,13 @@ function App() {
           positionnée en premier visuellement (haut-gauche desktop, au-dessus
           des filtres en mobile) - l'ordre de tabulation doit suivre la même
           hiérarchie plutôt que de faire passer les filtres (secondaires)
-          avant elle (ticket 15). Position CSS `fixed` : cet ordre n'a aucun
-          effet visuel, seulement sur l'ordre de tabulation et l'ordre de
-          peinture (sans incidence ici, aucun chevauchement entre panneaux à
-          l'état par défaut, cf. ticket 09/12). */}
+          avant elle (ticket 15). Position CSS `fixed` : cet ordre de DOM
+          n'affecte que la tabulation, pas l'empilement visuel - la liste
+          déroulante de la recherche (résultats/historique) chevauche
+          géométriquement ce bloc filtres en mobile une fois ouverte, d'où le
+          `z-[1100]` explicite du widget de recherche (BoulodromeSearch.tsx)
+          qui l'emporte désormais sur ce bloc plutôt que de dépendre de
+          l'ordre de peinture (ticket 25). */}
       <div className="fixed top-14 left-1/2 z-[1000] flex w-[280px] -translate-x-1/2 flex-row flex-wrap gap-1.5 text-sm md:top-3 md:left-[300px] md:w-auto md:translate-x-0">
         <PillFilterGroup
           groupLabel="Nature du sol"

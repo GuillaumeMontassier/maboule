@@ -189,8 +189,17 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [], onRemoveFro
   return (
     // `md` = 768px par defaut chez Tailwind, meme valeur que le breakpoint du
     // spec : pas de config de breakpoint dediee necessaire.
+    // z-[1100], plus haut que le z-[1000] des 3 autres panneaux flottants
+    // (filtres, ThemeToggle, RoutePanel) : en mobile le bloc filtres (top-14,
+    // App.tsx) chevauche geometriquement la liste ouverte (resultats ou
+    // historique) de ce widget, et un z-index a egalite se departage par
+    // ordre de peinture (DOM) - qui favorisait jusqu'ici les filtres, rendus
+    // apres ce widget dans App.tsx (ticket 25). Bump volontairement cible sur
+    // ce seul widget plutot qu'une echelle de z-index partagee : c'est la
+    // premiere fois que deux de ces panneaux ont besoin d'un ordre explicite
+    // entre eux.
     <div
-      className="fixed top-3 left-1/2 z-[1000] w-[280px] -translate-x-1/2 text-sm md:left-3 md:translate-x-0"
+      className="fixed top-3 left-1/2 z-[1100] w-[280px] -translate-x-1/2 text-sm md:left-3 md:translate-x-0"
       onFocus={() => {
         setIsFocused(true);
         if (suppressReopenOnFocusRef.current) {
