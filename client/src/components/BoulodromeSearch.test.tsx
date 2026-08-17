@@ -368,6 +368,62 @@ describe("BoulodromeSearch", () => {
     expect(screen.queryByRole("button", { name: "Effacer la recherche" })).toBeNull();
   });
 
+  it("cliquer une entrée de l'historique referme la liste d'historique et rend le focus au champ (ticket 24)", () => {
+    const history = [{ id: "data-es:1", name: "ARSENAL", siteName: null }];
+
+    render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} history={history} />);
+    const input = screen.getByLabelText("Rechercher un boulodrome");
+
+    fireEvent.focus(input);
+    fireEvent.click(screen.getByRole("button", { name: "ARSENAL" }));
+
+    expect(screen.queryByText("ARSENAL")).toBeNull();
+    // Le bouton cliqué disparaît du DOM avec la liste : sans recadrage
+    // explicite du focus, un vrai clic (qui focus d'abord le bouton avant
+    // le déclenchement du click) laisserait le focus retomber sur
+    // `document.body` plutôt que de rester dans le widget.
+    expect(document.activeElement).toBe(input);
+  });
+
+  it("cliquer un résultat de recherche referme la liste de résultats et rend le focus au champ (ticket 24)", async () => {
+    vi.mocked(fetchBoulodromes).mockResolvedValue(collectionWithBoulodrome("data-es:1", "ARSENAL"));
+    const onSelectBoulodrome = vi.fn();
+
+    render(<BoulodromeSearch onSelectBoulodrome={onSelectBoulodrome} />);
+    const input = screen.getByLabelText("Rechercher un boulodrome");
+
+    fireEvent.change(input, { target: { value: "ars" } });
+    await screen.findByText("ARSENAL");
+
+    // Le bouton porte aussi l'adresse dans son nom accessible ; on cible le
+    // texte du nom du boulodrome plutot que le nom accessible complet.
+    fireEvent.click(screen.getByText("ARSENAL"));
+
+    expect(onSelectBoulodrome).toHaveBeenCalledExactlyOnceWith("data-es:1");
+    expect(screen.queryByText("ARSENAL")).toBeNull();
+    expect(document.activeElement).toBe(input);
+  });
+
+  it("un vrai refocus ulterieur (apres une selection) reaffiche normalement l'historique (ticket 24)", () => {
+    const history = [{ id: "data-es:1", name: "ARSENAL", siteName: null }];
+
+    render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} history={history} />);
+    const input = screen.getByLabelText("Rechercher un boulodrome");
+
+    fireEvent.focus(input);
+    fireEvent.click(screen.getByRole("button", { name: "ARSENAL" }));
+    expect(screen.queryByText("ARSENAL")).toBeNull();
+
+    // Le focus programmatique repris par `selectAndClose` ne doit supprimer
+    // la reouverture qu'une seule fois : un vrai refocus (ex. l'utilisateur
+    // re-clique le champ) doit reafficher l'historique normalement, comme
+    // au premier focus.
+    fireEvent.blur(input);
+    fireEvent.focus(input);
+
+    expect(screen.getByText("ARSENAL")).toBeTruthy();
+  });
+
   it("Entrée sélectionne directement le premier résultat affiché", async () => {
     vi.mocked(fetchBoulodromes).mockResolvedValue({
       type: "FeatureCollection",

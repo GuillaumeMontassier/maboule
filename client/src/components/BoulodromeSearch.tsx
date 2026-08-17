@@ -92,6 +92,15 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [], onRemoveFro
   // clavier : Tab quittait le champ, la liste disparaissait avant que le
   // focus n'atteigne le bouton cible, et le navigateur le reperdait).
   const [isFocused, setIsFocused] = useState(false);
+  // Interrupteur de fermeture distinct de `isFocused` (ticket 24) : cliquer
+  // un item d'une liste (resultat ou historique) deplace le focus vers son
+  // <button>, qui reste un descendant du conteneur suivi par isFocused -
+  // le focus ne quitte donc jamais le widget et isFocused ne redevient
+  // jamais false au moment de la selection. `dismissedAfterSelect` referme
+  // les listes explicitement des qu'une selection a lieu, independamment du
+  // focus ; il est reinitialise a la prochaine frappe ou au prochain focus
+  // du widget pour ne pas bloquer un usage ulterieur normal.
+  const [dismissedAfterSelect, setDismissedAfterSelect] = useState(false);
   // Compteur de requetes : une recherche lancee puis abandonnee pour une
   // saisie plus recente ne doit pas ecraser le resultat de cette derniere si
   // sa reponse arrive apres coup (meme principe que le flag `cancelled`
@@ -101,6 +110,10 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [], onRemoveFro
   const hasQuery = query.trim().length > 0;
 
   useEffect(() => {
+    // Toute frappe (nouvelle recherche ou effacement) rouvre la possibilite
+    // d'afficher une liste, meme si la derniere action etait une selection.
+    setDismissedAfterSelect(false);
+
     const trimmed = query.trim();
     if (trimmed.length < MIN_QUERY_LENGTH) {
       latestRequestId.current += 1;
@@ -127,13 +140,35 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [], onRemoveFro
     return () => clearTimeout(timeoutId);
   }, [query]);
 
+  // Le focus programmatique pose par `selectAndClose` (voir plus bas) ne doit
+  // pas re-ouvrir la liste que l'on vient de fermer : sans ce garde-fou,
+  // l'`onFocus` du conteneur (qui reinitialise `dismissedAfterSelect` pour
+  // un vrai refocus utilisateur, cf. plus bas) s'appliquerait aussi a ce
+  // focus-la, rouvrant immediatement le panneau qu'on cherche a fermer.
+  const suppressReopenOnFocusRef = useRef(false);
+
+  // Point d'entree unique de toute selection (clic sur un resultat, clic sur
+  // une entree d'historique, Entree sur le premier resultat) - ferme les
+  // listes (ticket 24) en plus de propager la selection au parent.
+  function selectAndClose(id: string) {
+    setDismissedAfterSelect(true);
+    onSelectBoulodrome(id);
+    // Selectionner un item de liste (clic ou activation clavier) focus ce
+    // <button>, retire ensuite du DOM par la fermeture de la liste
+    // ci-dessus : sans ce recadrage explicite, le focus quitterait le
+    // widget (vers `document.body`), meme raison que le recadrage de
+    // `onRemoveFromHistory` plus bas.
+    suppressReopenOnFocusRef.current = true;
+    inputRef.current?.focus();
+  }
+
   // La recherche elle-meme se declenche desormais au fil de la frappe (effet
   // ci-dessus) : la soumission du formulaire (bouton ou touche Entree) sert
   // uniquement a selectionner le premier resultat deja affiche.
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (state.status === "success" && state.data.features.length > 0) {
-      onSelectBoulodrome(state.data.features[0].properties.id);
+      selectAndClose(state.data.features[0].properties.id);
     }
   }
 
@@ -156,7 +191,19 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [], onRemoveFro
     // spec : pas de config de breakpoint dediee necessaire.
     <div
       className="fixed top-3 left-1/2 z-[1000] w-[280px] -translate-x-1/2 text-sm md:left-3 md:translate-x-0"
-      onFocus={() => setIsFocused(true)}
+      onFocus={() => {
+        setIsFocused(true);
+        if (suppressReopenOnFocusRef.current) {
+          // Ce focus est le recadrage programmatique de `selectAndClose`,
+          // pas un vrai refocus utilisateur : ne pas rouvrir la liste qu'on
+          // vient de fermer.
+          suppressReopenOnFocusRef.current = false;
+        } else {
+          // Reprendre le focus sur le widget (ex. re-cliquer le champ apres
+          // une selection) doit reafficher normalement l'historique.
+          setDismissedAfterSelect(false);
+        }
+      }}
       onBlur={handleBlur}
     >
       <form onSubmit={handleSubmit} className="relative">
@@ -180,11 +227,11 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [], onRemoveFro
           </button>
         )}
       </form>
-      {isFocused && !hasQuery && history.length > 0 && (
+      {isFocused && !hasQuery && !dismissedAfterSelect && history.length > 0 && (
         <SelectableList
           items={history}
           keyOf={(entry) => entry.id}
-          onSelect={(entry) => onSelectBoulodrome(entry.id)}
+          onSelect={(entry) => selectAndClose(entry.id)}
           renderItem={(entry) =>
             historySiteName(entry) ? (
               <>
@@ -225,18 +272,20 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [], onRemoveFro
           }
         />
       )}
-      {state.status === "loading" && <p className={`${STATUS_CARD_CLASS} px-2.5 py-1.5`}>Recherche…</p>}
-      {state.status === "error" && (
+      {state.status === "loading" && !dismissedAfterSelect && (
+        <p className={`${STATUS_CARD_CLASS} px-2.5 py-1.5`}>Recherche…</p>
+      )}
+      {state.status === "error" && !dismissedAfterSelect && (
         <p className={`${STATUS_CARD_CLASS} px-2.5 py-1.5 text-red-700 dark:text-red-400`}>{state.message}</p>
       )}
-      {state.status === "success" && state.data.features.length === 0 && (
+      {state.status === "success" && state.data.features.length === 0 && !dismissedAfterSelect && (
         <p className={`${STATUS_CARD_CLASS} px-2.5 py-1.5`}>Aucun boulodrome trouvé.</p>
       )}
-      {state.status === "success" && state.data.features.length > 0 && (
+      {state.status === "success" && state.data.features.length > 0 && !dismissedAfterSelect && (
         <SelectableList
           items={state.data.features}
           keyOf={(feature) => feature.properties.id}
-          onSelect={(feature) => onSelectBoulodrome(feature.properties.id)}
+          onSelect={(feature) => selectAndClose(feature.properties.id)}
           renderItem={(feature) => (
             <>
               <strong>{feature.properties.name}</strong>
