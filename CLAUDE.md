@@ -14,6 +14,9 @@ moins bien (PostgreSQL/PostGIS, React).
   les types géométriques PostGIS — voir les requêtes spatiales poussées
   probablement en SQL brut via Drizzle)
 - **Tests** : Vitest pour les tests unitaires (backend et frontend)
+- **Documentation API** : Swagger/OpenAPI à partir de la Phase 2, généré
+  depuis des schémas Zod (`drizzle-zod` + `zod-to-openapi`) — voir
+  `ROADMAP.md`
 - **Licence** : MIT, avec attribution à la Ville de Paris (Licence Ouverte)
   pour les données open data
 - **Format d'échange** : GeoJSON pour tout ce qui est géographique
@@ -23,67 +26,6 @@ La roadmap complète du projet (phases, fonctionnalités, tests associés à
 chaque phase) est dans `ROADMAP.md` à la racine du repo. Toujours s'y
 référer pour savoir où on en est et ce qui est prévu pour la suite — ne pas
 anticiper une phase sans qu'elle soit explicitement demandée.
-
-## Phase actuelle : Phase 5 — Itinéraire (Phase 4 terminée)
-Objectifs de cette phase :
-- [x] Nouvelle table/source de données pour les cafés à proximité —
-      OpenStreetMap (Overpass API), tags `amenity=cafe|bar|pub` sur le
-      périmètre administratif de Paris (`admin_level=8`), points sans nom
-      ignorés à l'import ; nouvelle table `cafes` (`server/src/db/schema.ts`,
-      migration `0003_lyrical_carnage.sql`), modèle `Cafe`
-      (`server/src/models/cafe.ts`, `Address`/`GeoCoordinates` déplacés
-      dans `server/src/models/geo.ts` pour être partagés avec `Boulodrome`),
-      ingestion (`server/src/ingestion/osmCafes.ts`, `npm run ingest:cafes`
-      — 4482 cafés/bars importés) — licence ODbL (OpenStreetMap
-      contributors), distincte de la Licence Ouverte Ville de Paris déjà
-      en place pour les boulodromes ; attribution ajoutée au `README.md`
-- [x] Requête spatiale `ST_DWithin` ("à X mètres d'un boulodrome") —
-      `findCafesNearBoulodrome` (`server/src/db/cafesRepository.ts`) : jointure
-      sur un boulodrome par id + filtre `ST_DWithin(cafes.coordinates,
-      boulodromes.coordinates, radiusMeters)`, résultats triés par
-      `ST_Distance` croissante ; vérifié manuellement contre la vraie base
-      (rayons 50/200/1000m sur un boulodrome réel — 0/1/52 cafés, distances
-      cohérentes)
-- [x] Tests unitaires : calcul de proximité (mock de coordonnées,
-      vérification des seuils de distance) — 4 tests d'intégration ajoutés
-      dans `cafesRepository.integration.test.ts` (`findCafesNearBoulodrome`) :
-      inclusion/exclusion selon le rayon (200m vs 100m, seuils de distance),
-      tri par distance croissante, `distanceMeters` cohérent (tolérance sur
-      la conversion degrés/mètres utilisée pour placer les cafés de test),
-      liste vide sur un id de boulodrome inconnu
-- [x] Endpoint `GET /api/boulodromes/:id/cafes` — rayon `radius` en mètres,
-      paramètre optionnel avec défaut 200m ; validation Zod
-      (`server/src/schemas/cafesNearBoulodromeQuery.ts`) + doc OpenAPI
-      (`server/src/openapi/document.ts`) sur le même principe que
-      `/api/boulodromes` ; réponse GeoJSON (`server/src/geojson/cafes.ts`,
-      `distanceMeters` dans les properties) ; 404 si l'id de boulodrome
-      n'existe pas (`findBoulodromeById`, `server/src/db/boulodromesRepository.ts`)
-      ; vérifié manuellement (serveur local + curl : cas nominal, rayon
-      custom, id inconnu → 404, radius invalide → 400)
-- [x] Frontend : appel à `GET /api/boulodromes/:id/cafes` (`client/src/api/cafes.ts`)
-      déclenché automatiquement au clic sur un boulodrome (`BoulodromesMap.tsx`) ;
-      affichage des cafés à proximité sous forme de marqueurs distincts sur
-      la carte (emoji par `amenityType` : ☕/🍸/🍺, `L.divIcon`, pas de
-      nouveaux assets), avec leur propre popup (nom, distance, adresse si
-      connue) ; marqueurs retirés à la fermeture du popup ou au changement de
-      boulodrome sélectionné (pas d'accumulation) — vérifié en navigateur
-      réel (Playwright) : ouverture/fermeture, changement de boulodrome sans
-      accumulation. Bug trouvé et corrigé en cours de route : Leaflet ferme
-      par défaut le popup du boulodrome dès qu'un autre popup (celui d'un
-      café) s'ouvre par-dessus (`autoClose`) ou dès qu'on clique ailleurs sur
-      la carte (`closeOnClick`), ce qui vidait `nearbyCafes` et démontait le
-      marqueur café au moment même où on cliquait dessus — corrigé en
-      désactivant les deux sur la Popup du boulodrome et en gérant la
-      fermeture explicitement (refs Leaflet des marqueurs boulodromes)
-- [x] Tests unitaires : endpoint `/api/boulodromes/:id/cafes` (rayon par
-      défaut, 404 sur id inconnu) ; logique frontend de synchronisation des
-      marqueurs cafés avec le boulodrome sélectionné — côté backend, 4
-      nouveaux tests d'intégration (`server/src/app.integration.test.ts`,
-      via `supertest` ajouté en devDependency) : rayon par défaut 200m,
-      rayon custom, 404 sur id inconnu, 400 sur radius invalide ; côté
-      frontend, 3 tests (`client/src/components/BoulodromesMap.test.tsx`) :
-      pas d'appel sans sélection, chargement + affichage au clic, retrait
-      des marqueurs au changement de boulodrome sélectionné
 
 ## Conventions de code
 - Structure de dossiers claire : séparer `client/` (React) et `server/`
@@ -95,6 +37,51 @@ Objectifs de cette phase :
 - Ne jamais commit directement sur `main` : toujours créer une branche de
   travail (ex. `feat/<sujet>`) pour le travail en cours, même en l'absence
   de dépôt distant/PR
+
+## Bonnes pratiques React
+- Composants fonctionnels uniquement, avec hooks — jamais de composants
+  classe
+- Un composant par fichier, nommé en PascalCase (`BoulodromeCard.tsx`)
+- Séparer la logique métier de l'affichage : extraire la logique réutilisable
+  dans des hooks custom (`useBoulodromes.ts`) plutôt que de tout mettre dans
+  le composant
+- Typer les props de chaque composant avec une interface TypeScript dédiée,
+  jamais de `any`
+- Ne jamais appeler `fetch`/l'API directement dans un composant : passer par
+  la couche dédiée déjà en place (`client/src/api/*.ts`, un fichier par
+  ressource — `boulodromes.ts`, `cafes.ts`, `geocode.ts`, `route.ts`)
+- Gérer explicitement 3 états pour toute donnée asynchrone : chargement,
+  erreur, succès — jamais juste "ça marche ou ça plante silencieusement"
+- Respecter les règles des hooks (pas de hook dans une condition/boucle) et
+  éviter les `useEffect` superflus — si une valeur peut être calculée
+  directement au rendu, ne pas passer par un `useEffect` + `useState`
+- Accessibilité de base : `alt` sur les images, `aria-label` sur les boutons
+  qui n'ont qu'une icône (ex: bouton itinéraire, zoom)
+- Pas de state management externe (Redux, Zustand) tant que le besoin ne
+  s'en fait pas sentir clairement — rester sur `useState`/`useContext` pour
+  un projet de cette taille
+
+## Bonnes pratiques Express
+- Pas de couche `controllers`/`services` séparée : les handlers de route
+  appellent directement la couche repository (`server/src/db/*Repository.ts`)
+  ou les clients externes (`server/src/routing/*Client.ts`) — repository
+  pattern déjà en place, à conserver tel quel plutôt que d'ajouter une
+  couche d'indirection supplémentaire
+- Un router par ressource/domaine (`boulodromes.routes.ts`,
+  `cafes.routes.ts`), monté depuis un point d'entrée central — plutôt que
+  tous les endpoints dans un seul `app.ts`
+- Valider systématiquement les entrées (body, params, query) avec Zod avant
+  tout traitement — ne jamais faire confiance à ce qui arrive du client
+- Centraliser la gestion des erreurs dans un middleware dédié plutôt que des
+  `try/catch` dispersés avec des formats de réponse différents partout
+- Ne jamais renvoyer une stack trace ou un message d'erreur interne brut au
+  client, surtout en production
+- Codes HTTP cohérents et corrects (200/201 succès, 400 requête invalide,
+  404 non trouvé, 500 erreur serveur) — ne pas tout renvoyer en 200
+- Toute variable sensible (connexion DB, clés API) via variables
+  d'environnement, jamais en dur dans le code
+- Logs structurés plutôt que des `console.log` disséminés sans organisation
+  — même basique, préparer le terrain pour un vrai logger plus tard
 
 ## Important : pédagogie
 Ce projet sert aussi à apprendre. Sur toute techno nouvelle pour moi
@@ -115,7 +102,7 @@ Ce projet sert aussi à apprendre. Sur toute techno nouvelle pour moi
 - `npm run test:integration` (dans `server/`) : tests contre le vrai
   Postgres/PostGIS local (nécessite `docker compose up -d`)
 - `npm run db:generate` / `npm run db:migrate` (dans `server/`) : migrations
-  DB via drizzle-kit
+  DB
 - (à compléter au fur et à mesure : lint...)
 
 ## Hors scope pour l'instant

@@ -323,7 +323,31 @@ bouton "Itinéraire" et le choix du fond de carte en dark mode.
 - [ ] Tests unitaires/composants sur le nouveau comportement de recherche
       (debounce, sélection au clavier, historique)
 
-## Phase 7 — Contributions utilisateurs
+## Phase 7 — Alignement aux standards de code (CLAUDE.md)
+
+Suite à l'ajout des sections "Bonnes pratiques React" et "Bonnes pratiques
+Express" dans `CLAUDE.md`, audit du code existant contre ces règles.
+Spec et découpage en tickets sous `.scratch/phase-8-standards/` (voir
+`docs/agents/issue-tracker.md`) : `spec.md` + 5 tickets. La plupart des
+règles React (composants fonctionnels, typage des props, pas de `any`,
+couche `client/src/api/`, 3 états async, a11y de base) sont déjà respectées
+par le code actuel et ne génèrent pas de ticket — seuls les écarts réels
+sont listés ci-dessous. La règle de layering Express ("routes → controllers
+→ services") a été corrigée dans `CLAUDE.md` pour refléter le repository
+pattern déjà en place plutôt que d'être imposée au code (décision prise en
+triage, cf. `.scratch/phase-8-standards/spec.md`).
+
+- [ ] Ticket 01 — Découper `server/src/app.ts` en routers par ressource,
+      repository pattern conservé (pas de couche controllers/services)
+- [ ] Ticket 02 — Middleware d'erreur centralisé côté serveur
+- [ ] Ticket 03 — Logs structurés côté serveur (wrapper léger, pas de
+      nouvelle dépendance pour l'instant)
+- [ ] Ticket 04 — Extraire la logique de sélection/chargement des cafés de
+      `BoulodromesMap.tsx` dans un hook custom
+- [ ] Ticket 05 — Trancher et appliquer le traitement de l'état de
+      chargement/erreur des cafés à proximité (silencieux assumé vs. exposé)
+
+## Phase 8 — Contributions utilisateurs
 
 - [ ] Formulaire de suggestion (ajout/modification de boulodrome ou café)
 - [ ] Table de modération pour les suggestions en attente
