@@ -232,7 +232,19 @@ describe("BoulodromesMap - accessibilité clavier", () => {
     expect(await screen.findByRole("heading", { name: "Itinéraire" })).toBeTruthy();
   });
 
-  it("une touche autre qu'Entrée sur un marqueur ne déclenche pas de sélection", () => {
+  it("activer un marqueur au clavier (Espace) déclenche aussi la sélection (role=\"button\", WAI-ARIA attend Entrée et Espace)", async () => {
+    vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes);
+
+    const { container } = render(<BoulodromesMap features={sampleBoulodromes} />);
+    const [marker] = container.querySelectorAll(".leaflet-marker-icon");
+
+    fireEvent.keyPress(marker, { key: " ", keyCode: 32 });
+
+    await waitFor(() => expect(fetchCafesNearBoulodrome).toHaveBeenCalledWith("data-es:1"));
+    expect(await screen.findByRole("heading", { name: "Itinéraire" })).toBeTruthy();
+  });
+
+  it("une touche autre qu'Entrée ou Espace sur un marqueur ne déclenche pas de sélection", () => {
     const { container } = render(<BoulodromesMap features={sampleBoulodromes} />);
     const [marker] = container.querySelectorAll(".leaflet-marker-icon");
 

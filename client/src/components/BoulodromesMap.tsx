@@ -189,18 +189,26 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
                 // l'ancien popup (necessaire car `autoClose` est desactive
                 // ci-dessous sur la Popup - cf. commentaire `autoClose`).
                 click: () => selectBoulodrome(id),
-                // Le mixin popup de Leaflet ouvre le popup au clavier (Entree)
-                // via son propre gestionnaire interne `keypress` -> `_openPopup`
-                // (`leaflet-src.js`, mixin Popup), completement independant de
-                // l'evenement `click` ci-dessus : sans cet ecouteur explicite,
-                // l'activation clavier d'un marqueur ouvrait le popup Leaflet
-                // brut sans jamais appeler `selectBoulodrome` - donc sans
-                // panneau Itineraire, sans cafes a proximite et sans ajout a
-                // l'historique (ticket 13). Meme condition de declenchement
-                // que le mixin interne (touche Entree) pour rester synchronise
-                // avec le moment ou Leaflet ouvre effectivement le popup.
+                // Le mixin popup de Leaflet ouvre le popup au clavier (Entree
+                // seulement) via son propre gestionnaire interne `keypress` ->
+                // `_openPopup` (`leaflet-src.js`, mixin Popup), completement
+                // independant de l'evenement `click` ci-dessus : sans cet
+                // ecouteur explicite, l'activation clavier d'un marqueur
+                // ouvrait le popup Leaflet brut sans jamais appeler
+                // `selectBoulodrome` - donc sans panneau Itineraire, sans
+                // cafes a proximite et sans ajout a l'historique (ticket 13).
+                // Espace egalement gere ici (contrairement au mixin interne
+                // de Leaflet, qui ne reagit qu'a Entree) : le marqueur porte
+                // `role="button"` (pose par Leaflet), et la spec WAI-ARIA
+                // attend qu'un role=button reagisse aux deux touches.
+                // `preventDefault` sur Espace evite le defilement de page
+                // (comportement par defaut du navigateur sur un element
+                // focusable non-formulaire).
                 keypress: (event) => {
-                  if (event.originalEvent.key === "Enter") selectBoulodrome(id);
+                  const key = event.originalEvent.key;
+                  if (key !== "Enter" && key !== " ") return;
+                  if (key === " ") event.originalEvent.preventDefault();
+                  selectBoulodrome(id);
                 },
                 popupclose: () => setSelectedBoulodromeId((current) => (current === id ? null : current)),
               }}
