@@ -38,6 +38,42 @@ anticiper une phase sans qu'elle soit explicitement demandée.
   travail (ex. `feat/<sujet>`) pour le travail en cours, même en l'absence
   de dépôt distant/PR
 
+## Code style
+
+- Pas de points-virgules, guillemets simples, indentation de 4 espaces, largeur de ligne 120, pas de virgule finale.
+- Ne quasiment jamais typer quelque chose en `object` (ou avec une forme `{ ... }` anonyme répétée dans le code) —
+  cela masque le schéma de données réel. Créer un type/interface nommé à la place, même pour une forme ponctuelle ou
+  petite, pour que la forme reste explicite et facile à retrouver.
+- Préférer la notation pointée (`obj.prop`) à la notation par crochets (`obj['prop']`) pour accéder aux propriétés
+  d'un objet, dès que possible. Avoir besoin de la notation par crochets est souvent le signe que l'objet n'est pas
+  correctement typé (`any`, `Record<string, unknown>` trop permissif, type trop large...) — corriger le typage plutôt
+  que contourner via les crochets.
+- Préférer `async`/`await` aux chaînes `.then()`/`.catch()` pour toute la logique asynchrone, y compris dans les
+  callbacks/gestionnaires d'événements (ex. `onClick`, `useEffect`) — c'est le style à privilégier dans tout le
+  projet.
+
+### Documentation / JSDoc
+
+Lors de la documentation d'une méthode, respecter ces conventions :
+
+- un bloc JSDoc (`/** ... */`) juste au-dessus de la méthode, description en français,
+- un `@param` par paramètre, avec le type entre accolades : `@param {Type} nom - Description.`,
+- un paramètre optionnel avec valeur par défaut se documente ainsi :
+  `@param {Type} [nom=valeurParDefaut] - Description.`,
+- une ligne `@returns {Type}` décrivant la valeur de retour.
+
+### Conventions de tests
+
+Lors de l'écriture de nouveaux fichiers de test, respecter ces conventions :
+
+- utiliser `it()`, pas `test()`,
+- les blocs `describe()` sont nommés d'après la seule fonction testée, sans suffixe "function" (ex.
+  `describe('formatDate', ...)`, pas `describe('formatDate function', ...)`),
+- les descriptions `it()` sont écrites en français, et décrivent précisément le comportement/cas limite testé (pas
+  de formulation générique du type "doit retourner la bonne valeur"),
+- les callbacks `it()` ont un type de retour explicite `(): void =>`,
+- une ligne vide sépare chaque bloc `it()` au sein d'un `describe()`.
+
 ## Bonnes pratiques React
 - Composants fonctionnels uniquement, avec hooks — jamais de composants
   classe
