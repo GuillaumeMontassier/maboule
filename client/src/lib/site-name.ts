@@ -4,6 +4,6 @@
 // les trois s'accordent sur quand l'afficher plutot que de dupliquer (et
 // potentiellement faire diverger) la meme regle a trois endroits.
 export function distinctSiteName(name: string, siteName: string | null): string | null {
-  const trimmed = siteName?.trim();
-  return trimmed && trimmed !== name ? trimmed : null;
+    const trimmed = siteName?.trim()
+    return trimmed && trimmed !== name ? trimmed : null
 }

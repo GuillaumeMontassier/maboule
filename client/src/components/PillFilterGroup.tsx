@@ -1,10 +1,10 @@
-import { PILL_ACTIVE_CLASS, PILL_BASE_CLASS, PILL_INACTIVE_CLASS } from "./pillStyles";
+import { PILL_ACTIVE_CLASS, PILL_BASE_CLASS, PILL_INACTIVE_CLASS } from './pillStyles'
 
 interface PillFilterGroupProps {
-  groupLabel: string;
-  options: readonly string[];
-  selected: string[];
-  onChange: (selected: string[]) => void;
+    groupLabel: string
+    options: readonly string[]
+    selected: string[]
+    onChange: (selected: string[]) => void
 }
 
 // Pas de fieldset/légende/encart autour du groupe (ticket 20) : les pilules
@@ -16,27 +16,27 @@ interface PillFilterGroupProps {
 // d'écran, ce qu'un `aria-label` sur le bouton lui-même n'expose pas ce
 // risque.
 export function PillFilterGroup({ groupLabel, options, selected, onChange }: PillFilterGroupProps) {
-  function toggle(value: string) {
-    onChange(selected.includes(value) ? selected.filter((v) => v !== value) : [...selected, value]);
-  }
+    function toggle(value: string) {
+        onChange(selected.includes(value) ? selected.filter((v) => v !== value) : [...selected, value])
+    }
 
-  return (
-    <>
-      {options.map((value) => {
-        const active = selected.includes(value);
-        return (
-          <button
-            key={value}
-            type="button"
-            aria-pressed={active}
-            aria-label={`${groupLabel} : ${value}`}
-            onClick={() => toggle(value)}
-            className={`${PILL_BASE_CLASS} ${active ? PILL_ACTIVE_CLASS : PILL_INACTIVE_CLASS}`}
-          >
-            {value}
-          </button>
-        );
-      })}
-    </>
-  );
+    return (
+        <>
+            {options.map((value) => {
+                const active = selected.includes(value)
+                return (
+                    <button
+                        key={value}
+                        type="button"
+                        aria-pressed={active}
+                        aria-label={`${groupLabel} : ${value}`}
+                        onClick={() => toggle(value)}
+                        className={`${PILL_BASE_CLASS} ${active ? PILL_ACTIVE_CLASS : PILL_INACTIVE_CLASS}`}
+                    >
+                        {value}
+                    </button>
+                )
+            })}
+        </>
+    )
 }

@@ -5,10 +5,10 @@
 // restent des chaines litterales (requis par le scanner JIT) : en cas de
 // changement de mise en page, les garder synchronisees avec cet objet.
 export const ROUTE_PANEL_LAYOUT = {
-  widthPx: 280,
-  marginPx: 12,
-  // Hauteur mesuree en navigateur (Playwright) dans l'etat le plus grand du
-  // panneau (choix d'adresse ambigue, liste plafonnee par `max-h-40`),
-  // arrondie a la hausse.
-  maxHeightPx: 325,
-} as const;
+    widthPx: 280,
+    marginPx: 12,
+    // Hauteur mesuree en navigateur (Playwright) dans l'etat le plus grand du
+    // panneau (choix d'adresse ambigue, liste plafonnee par `max-h-40`),
+    // arrondie a la hausse.
+    maxHeightPx: 325
+} as const
