@@ -51,8 +51,23 @@ function App() {
           géométriquement ce bloc filtres en mobile une fois ouverte, d'où le
           `z-[1100]` explicite du widget de recherche (BoulodromeSearch.tsx)
           qui l'emporte désormais sur ce bloc plutôt que de dépendre de
-          l'ordre de peinture (ticket 25). */}
-            <div className="fixed top-14 left-1/2 z-[1000] flex w-[280px] -translate-x-1/2 flex-row flex-wrap gap-1.5 text-sm md:top-3 md:left-[300px] md:w-auto md:translate-x-0">
+          l'ordre de peinture (ticket 25).
+
+          Pleine largeur sous la recherche à toutes les tailles d'écran
+          (ticket 34) : plus de position "à côté de la recherche" en desktop
+          (`md:left-[300px]`) - à partir des pilules-groupe (31/32) la rangée
+          est plus large qu'avant et tiendrait à côté de la recherche sur un
+          desktop large mais pas sur un laptop/tablette (1024px), cas limite
+          évité en passant systématiquement sous la recherche plutôt qu'en le
+          gérant au cas par cas. `flex-nowrap` + `overflow-x-auto` (jamais de
+          retour à la ligne, y compris en mobile) : un `flex-wrap` empilerait
+          les groupes de filtres sur plusieurs lignes verticales, qui
+          grignoteraient la carte visible bien plus qu'un scroll horizontal
+          contenu sur une seule ligne. `shrink-0` sur chaque groupe (cf.
+          `PillFilterGroup`/`AccessFilter`) : sans lui, `flex-nowrap` sur ce
+          conteneur compresserait les pilules au lieu de les laisser déborder
+          dans la zone de scroll. */}
+            <div className="fixed top-14 left-3 right-3 z-[1000] flex flex-row flex-nowrap items-center gap-1.5 overflow-x-auto text-sm">
                 <PillFilterGroup
                     groupLabel="Sol"
                     options={GROUND_TYPES}

@@ -193,9 +193,12 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [], onRemoveFro
         // `md` = 768px par defaut chez Tailwind, meme valeur que le breakpoint du
         // spec : pas de config de breakpoint dediee necessaire.
         // z-[1100], plus haut que le z-[1000] des 3 autres panneaux flottants
-        // (filtres, ThemeToggle, RoutePanel) : en mobile le bloc filtres (top-14,
-        // App.tsx) chevauche geometriquement la liste ouverte (resultats ou
-        // historique) de ce widget, et un z-index a egalite se departage par
+        // (filtres, ThemeToggle, RoutePanel) : le bloc filtres (top-14, App.tsx)
+        // chevauche geometriquement la liste ouverte (resultats ou historique) de
+        // ce widget - a toutes les tailles d'ecran depuis que les filtres sont
+        // passes en pleine largeur sous la recherche (ticket 34), auparavant
+        // seulement en mobile (le desktop les plaçait a cote de la recherche,
+        // sans chevauchement vertical). Un z-index a egalite se departage par
         // ordre de peinture (DOM) - qui favorisait jusqu'ici les filtres, rendus
         // apres ce widget dans App.tsx (ticket 25). Bump volontairement cible sur
         // ce seul widget plutot qu'une echelle de z-index partagee : c'est la

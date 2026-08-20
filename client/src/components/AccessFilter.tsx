@@ -28,7 +28,7 @@ const SEGMENTS: AccessSegment[] = [
 // choix binaire exclusif sur `boolean | undefined`.
 export function AccessFilter({ value, onChange }: AccessFilterProps) {
     return (
-        <div className="inline-flex overflow-hidden rounded-full h-8">
+        <div className="inline-flex h-8 shrink-0 overflow-hidden rounded-full">
             <span className={`${PILL_SEGMENT_BASE_CLASS} ${PILL_GROUP_LABEL_CLASS}`}>Accès</span>
             {SEGMENTS.map(({ label, segmentValue }) => {
                 const active = value === segmentValue

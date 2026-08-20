@@ -1,6 +1,10 @@
 import type { PointExpression } from 'leaflet'
 import { ROUTE_PANEL_LAYOUT } from '../constants/routePanelLayout'
-import { MOBILE_BREAKPOINT_PX, MOBILE_SEARCH_FILTERS_HEIGHT_PX } from '../constants/searchFiltersLayout'
+import {
+    DESKTOP_SEARCH_FILTERS_HEIGHT_PX,
+    MOBILE_BREAKPOINT_PX,
+    MOBILE_SEARCH_FILTERS_HEIGHT_PX
+} from '../constants/searchFiltersLayout'
 
 export interface PopupAutoPanPadding {
     topLeft: PointExpression
@@ -15,12 +19,15 @@ export interface PopupAutoPanPadding {
 // rectangulaires depuis chaque bord (pas un rectangle arbitraire dans un
 // coin) : on reserve donc une marge large a la fois a gauche (RoutePanel) et
 // en haut (recherche + filtres), calculee a partir de `ROUTE_PANEL_LAYOUT` et
-// `MOBILE_SEARCH_FILTERS_HEIGHT_PX` (sources communes avec les classes
+// des constantes de `searchFiltersLayout` (sources communes avec les classes
 // Tailwind des panneaux) plutot que sur des constantes deconnectees.
 //
-// La marge du haut ne s'applique qu'en mobile (< `MOBILE_BREAKPOINT_PX`) :
-// en desktop, recherche et filtres sont cote a cote (pas empiles) et ne
-// depassent pas la petite marge par defaut deja verifiee par le ticket 09.
+// Depuis le passage des filtres en pleine largeur sous la recherche a toutes
+// les tailles d'ecran (ticket 34), le bloc recherche + filtres est empile en
+// desktop comme en mobile - la marge du haut s'applique donc désormais aux
+// deux, seule sa valeur differe (`MOBILE_SEARCH_FILTERS_HEIGHT_PX` inclut la
+// barre de defilement horizontale du ticket 34, absente en desktop faute de
+// debordement).
 //
 // `viewportWidthPx` est un parametre plutot qu'une lecture directe de
 // `window.innerWidth` : une popup peut s'ouvrir apres un redimensionnement de
@@ -32,7 +39,7 @@ export function computePopupAutoPanPadding(viewportWidthPx: number): PopupAutoPa
     return {
         topLeft: [
             ROUTE_PANEL_LAYOUT.widthPx + ROUTE_PANEL_LAYOUT.marginPx * 2,
-            isMobile ? MOBILE_SEARCH_FILTERS_HEIGHT_PX : 16
+            isMobile ? MOBILE_SEARCH_FILTERS_HEIGHT_PX : DESKTOP_SEARCH_FILTERS_HEIGHT_PX
         ],
         bottomRight: [16, ROUTE_PANEL_LAYOUT.maxHeightPx]
     }
