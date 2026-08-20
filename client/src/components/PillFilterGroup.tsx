@@ -26,7 +26,7 @@ export function PillFilterGroup({ groupLabel, options, selected, onChange }: Pil
     }
 
     return (
-        <div className="inline-flex overflow-hidden rounded-full">
+        <div className="inline-flex overflow-hidden rounded-full h-8">
             <span className={`${PILL_SEGMENT_BASE_CLASS} ${PILL_GROUP_LABEL_CLASS}`}>{groupLabel}</span>
             {options.map((value) => {
                 const active = selected.includes(value)

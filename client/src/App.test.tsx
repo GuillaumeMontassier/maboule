@@ -63,7 +63,7 @@ describe('App', () => {
 
         const toggleBefore = screen.getByRole('button', { name: 'Passer au thème sombre' })
 
-        fireEvent.click(screen.getByRole('button', { name: 'Nature du sol : Sable' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Sol : Sable' }))
 
         await waitFor(() => expect(fetchBoulodromes).toHaveBeenCalledTimes(2))
         const toggleAfter = screen.getByRole('button', { name: 'Passer au thème sombre' })
@@ -89,7 +89,7 @@ describe('App', () => {
         expect(await screen.findByText(/erreur lors du chargement/i)).toBeTruthy()
     })
 
-    it('recharge les boulodromes avec le filtre sélectionné quand une pilule "nature du sol" est activée', async () => {
+    it('recharge les boulodromes avec le filtre sélectionné quand une pilule "Sol" est activée', async () => {
         vi.mocked(fetchBoulodromes).mockResolvedValue(sampleCollection)
 
         render(<App />)
@@ -101,7 +101,7 @@ describe('App', () => {
             })
         )
 
-        const sablePill = screen.getByRole('button', { name: 'Nature du sol : Sable' })
+        const sablePill = screen.getByRole('button', { name: 'Sol : Sable' })
         fireEvent.click(sablePill)
 
         await waitFor(() =>
@@ -122,7 +122,7 @@ describe('App', () => {
         render(<App />)
         await waitFor(() => expect(fetchBoulodromes).toHaveBeenCalledTimes(1))
 
-        fireEvent.click(screen.getByRole('button', { name: "Type d'équipement : Découvert" }))
+        fireEvent.click(screen.getByRole('button', { name: "Environnement : Découvert" }))
 
         await waitFor(() =>
             expect(fetchBoulodromes).toHaveBeenCalledWith({
@@ -140,7 +140,7 @@ describe('App', () => {
         await waitFor(() => expect(container.querySelector('.leaflet-container')).toBeTruthy())
 
         const search = screen.getByLabelText('Rechercher un boulodrome')
-        const firstFilterPill = screen.getByRole('button', { name: 'Nature du sol : Stabilisé/cendrée' })
+        const firstFilterPill = screen.getByRole('button', { name: 'Sol : Stabilisé/cendrée' })
 
         // `compareDocumentPosition` : DOCUMENT_POSITION_FOLLOWING indique que
         // `firstFilterPill` vient après `search` dans le document - donc que

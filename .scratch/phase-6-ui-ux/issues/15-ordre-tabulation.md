@@ -6,7 +6,7 @@
 
 **Status:** done
 
-**Origine :** Audit UI/UX du 2026-08-16 (constat D). Premier Tab depuis le chargement de la page → case à cocher « Stabilisé/cendrée » (filtre « Nature du sol »), pas le champ de recherche. En cause : `App.tsx` monte le bloc filtres avant `<BoulodromesMap>` (qui contient `<BoulodromeSearch>`) dans le JSX, alors que visuellement la recherche est l'action principale, positionnée en premier (haut-gauche desktop, au-dessus des filtres en mobile).
+**Origine :** Audit UI/UX du 2026-08-16 (constat D). Premier Tab depuis le chargement de la page → case à cocher « Stabilisé/cendrée » (filtre « Sol »), pas le champ de recherche. En cause : `App.tsx` monte le bloc filtres avant `<BoulodromesMap>` (qui contient `<BoulodromeSearch>`) dans le JSX, alors que visuellement la recherche est l'action principale, positionnée en premier (haut-gauche desktop, au-dessus des filtres en mobile).
 
 Un utilisateur clavier traverse donc 4 cases à cocher + 1 menu déroulant avant d'atteindre l'action qu'un utilisateur voyant identifie en premier.
 

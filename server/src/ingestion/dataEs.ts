@@ -10,7 +10,7 @@ export interface DataEsEquipementRecord {
     installation_numero: string
     // "Decouvert" / "Couvert".
     nature: string | null
-    // Nature du sol (ex. "Stabilise/cendree", "Sable"...).
+    // Sol (ex. "Stabilise/cendree", "Sable"...).
     aire_nature_sol: string | null
     // Accessible a tous, en permanence (non clos), sans reservation ni
     // encadrement necessaire.

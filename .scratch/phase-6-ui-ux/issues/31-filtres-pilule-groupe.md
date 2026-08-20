@@ -1,6 +1,6 @@
 # 31 — Groupement visuel des filtres (pilule-groupe)
 
-**What to build:** Chaque groupe de filtres ("Nature du sol", "Type d'équipement") devient une seule pilule segmentée : un segment libellé non-cliquable à gauche, les segments-options (comportement inchangé, `PillFilterGroup`) à droite, le tout dans un contour `rounded-full` continu (coins arrondis uniquement aux extrémités : segment libellé `rounded-l-full`, dernier segment-option `rounded-r-full`, segments intermédiaires sans arrondi).
+**What to build:** Chaque groupe de filtres ("Sol", "Environnement") devient une seule pilule segmentée : un segment libellé non-cliquable à gauche, les segments-options (comportement inchangé, `PillFilterGroup`) à droite, le tout dans un contour `rounded-full` continu (coins arrondis uniquement aux extrémités : segment libellé `rounded-l-full`, dernier segment-option `rounded-r-full`, segments intermédiaires sans arrondi).
 
 **Blocked by:** aucun
 

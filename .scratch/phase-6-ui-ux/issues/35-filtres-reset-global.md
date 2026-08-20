@@ -1,6 +1,6 @@
 # 35 — Bouton reset global des filtres
 
-**What to build:** Un bouton "Réinitialiser" qui vide les 3 groupes de filtres (Nature du sol, Type d'équipement, Accès) en un clic, toujours visible (jamais caché par le scroll horizontal mobile du ticket 34 — hors de la zone scrollable, ou pinned à une extrémité fixe).
+**What to build:** Un bouton "Réinitialiser" qui vide les 3 groupes de filtres (Sol, Environnement, Accès) en un clic, toujours visible (jamais caché par le scroll horizontal mobile du ticket 34 — hors de la zone scrollable, ou pinned à une extrémité fixe).
 
 **Blocked by:** 34 (l'emplacement du bouton dépend de la disposition finale de la rangée)
 

@@ -10,7 +10,7 @@
 
 Le **backend gère déjà les 3 états** (`freeAccess: true | false | undefined`), avec tests d'intégration dédiés (`server/src/db/boulodromesRepository.integration.test.ts:243-272` — filtre "accès libre", filtre "accès restreint", pas de filtre). Aucun changement serveur nécessaire.
 
-- [ ] Remplacer `FreeAccessFilter.tsx` par un composant à 2 segments exclusifs ("Libre" / "Restreint") sous le libellé de groupe "Accès" (pas besoin de répéter "Accès" dans les segments, même logique que "Nature du sol" → "Stabilisé/cendrée"/"Sable")
+- [ ] Remplacer `FreeAccessFilter.tsx` par un composant à 2 segments exclusifs ("Libre" / "Restreint") sous le libellé de groupe "Accès" (pas besoin de répéter "Accès" dans les segments, même logique que "Sol" → "Stabilisé/cendrée"/"Sable")
 - [ ] État local : `freeAccess: boolean | undefined` (inchangé côté `App.tsx`/`fetchBoulodromes` — c'est déjà le type actuel, seule l'UI change)
 - [ ] Logique d'exclusion mutuelle : sélectionner "Libre" met `freeAccess = true` (et jamais `false` en même temps) ; sélectionner "Restreint" met `freeAccess = false` ; recliquer le segment actif remet `freeAccess = undefined`
 - [ ] `aria-pressed` sur chaque segment reflète son propre état (pas un `role="radiogroup"` — cohérent avec le choix ticket 20 d'éviter les rôles ARIA groupés sur `display: contents`, cf. `PillFilterGroup.tsx`)
