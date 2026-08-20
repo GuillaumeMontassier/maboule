@@ -1,10 +1,10 @@
-import type { PointExpression } from "leaflet";
-import { ROUTE_PANEL_LAYOUT } from "../constants/routePanelLayout";
-import { MOBILE_BREAKPOINT_PX, MOBILE_SEARCH_FILTERS_HEIGHT_PX } from "../constants/searchFiltersLayout";
+import type { PointExpression } from 'leaflet'
+import { ROUTE_PANEL_LAYOUT } from '../constants/routePanelLayout'
+import { MOBILE_BREAKPOINT_PX, MOBILE_SEARCH_FILTERS_HEIGHT_PX } from '../constants/searchFiltersLayout'
 
 export interface PopupAutoPanPadding {
-  topLeft: PointExpression;
-  bottomRight: PointExpression;
+    topLeft: PointExpression
+    bottomRight: PointExpression
 }
 
 // Le RoutePanel (bas-gauche) et le bloc recherche + filtres (haut) sont des
@@ -28,12 +28,12 @@ export interface PopupAutoPanPadding {
 // (BoulodromesMap) doit relire la largeur a chaque rendu - et ce module reste
 // testable sans DOM.
 export function computePopupAutoPanPadding(viewportWidthPx: number): PopupAutoPanPadding {
-  const isMobile = viewportWidthPx < MOBILE_BREAKPOINT_PX;
-  return {
-    topLeft: [
-      ROUTE_PANEL_LAYOUT.widthPx + ROUTE_PANEL_LAYOUT.marginPx * 2,
-      isMobile ? MOBILE_SEARCH_FILTERS_HEIGHT_PX : 16,
-    ],
-    bottomRight: [16, ROUTE_PANEL_LAYOUT.maxHeightPx],
-  };
+    const isMobile = viewportWidthPx < MOBILE_BREAKPOINT_PX
+    return {
+        topLeft: [
+            ROUTE_PANEL_LAYOUT.widthPx + ROUTE_PANEL_LAYOUT.marginPx * 2,
+            isMobile ? MOBILE_SEARCH_FILTERS_HEIGHT_PX : 16
+        ],
+        bottomRight: [16, ROUTE_PANEL_LAYOUT.maxHeightPx]
+    }
 }

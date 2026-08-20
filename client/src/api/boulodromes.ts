@@ -1,52 +1,50 @@
-import type { FeatureCollection, Point } from "geojson";
+import type { FeatureCollection, Point } from 'geojson'
 
 export interface BoulodromeProperties {
-  id: string;
-  name: string;
-  street: string;
-  postalCode: string;
-  city: string;
-  inseeCode: string | null;
-  siteName: string | null;
-  equipmentType: string | null;
-  groundType: string | null;
-  freeAccess: boolean | null;
-  source: string;
-  lastSyncedAt: string;
+    id: string
+    name: string
+    street: string
+    postalCode: string
+    city: string
+    inseeCode: string | null
+    siteName: string | null
+    equipmentType: string | null
+    groundType: string | null
+    freeAccess: boolean | null
+    source: string
+    lastSyncedAt: string
 }
 
-export type BoulodromesFeatureCollection = FeatureCollection<Point, BoulodromeProperties>;
+export type BoulodromesFeatureCollection = FeatureCollection<Point, BoulodromeProperties>
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:3000";
+const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
 
 export interface BoulodromesFilters {
-  groundTypes?: string[];
-  equipmentTypes?: string[];
-  freeAccess?: boolean;
-  search?: string;
+    groundTypes?: string[]
+    equipmentTypes?: string[]
+    freeAccess?: boolean
+    search?: string
 }
 
-export async function fetchBoulodromes(
-  filters: BoulodromesFilters = {},
-): Promise<BoulodromesFeatureCollection> {
-  const params = new URLSearchParams();
-  for (const groundType of filters.groundTypes ?? []) {
-    params.append("groundType", groundType);
-  }
-  for (const equipmentType of filters.equipmentTypes ?? []) {
-    params.append("equipmentType", equipmentType);
-  }
-  if (filters.freeAccess !== undefined) {
-    params.append("freeAccess", String(filters.freeAccess));
-  }
-  if (filters.search) {
-    params.append("q", filters.search);
-  }
-  const query = params.toString();
+export async function fetchBoulodromes(filters: BoulodromesFilters = {}): Promise<BoulodromesFeatureCollection> {
+    const params = new URLSearchParams()
+    for (const groundType of filters.groundTypes ?? []) {
+        params.append('groundType', groundType)
+    }
+    for (const equipmentType of filters.equipmentTypes ?? []) {
+        params.append('equipmentType', equipmentType)
+    }
+    if (filters.freeAccess !== undefined) {
+        params.append('freeAccess', String(filters.freeAccess))
+    }
+    if (filters.search) {
+        params.append('q', filters.search)
+    }
+    const query = params.toString()
 
-  const response = await fetch(`${API_URL}/api/boulodromes${query ? `?${query}` : ""}`);
-  if (!response.ok) {
-    throw new Error(`Erreur lors du chargement des boulodromes (${response.status})`);
-  }
-  return response.json();
+    const response = await fetch(`${API_URL}/api/boulodromes${query ? `?${query}` : ''}`)
+    if (!response.ok) {
+        throw new Error(`Erreur lors du chargement des boulodromes (${response.status})`)
+    }
+    return response.json()
 }

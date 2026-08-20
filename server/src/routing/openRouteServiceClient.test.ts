@@ -1,100 +1,100 @@
-import { describe, expect, it } from "vitest";
-import { GeoCoordinates } from "../models/geo";
+import { describe, expect, it } from 'vitest'
+import { GeoCoordinates } from '../models/geo'
 import {
-  AddressNotFoundError,
-  buildDirectionsRequestBody,
-  buildGeocodeSearchParams,
-  RouteNotFoundError,
-  toGeocodeCandidates,
-  toRouteFeature,
-} from "./openRouteServiceClient";
+    AddressNotFoundError,
+    buildDirectionsRequestBody,
+    buildGeocodeSearchParams,
+    RouteNotFoundError,
+    toGeocodeCandidates,
+    toRouteFeature
+} from './openRouteServiceClient'
 
-describe("buildDirectionsRequestBody", () => {
-  it("ordonne les coordonnées en [longitude, latitude], origine puis destination", () => {
-    const origin = new GeoCoordinates(48.8566, 2.3522);
-    const destination = new GeoCoordinates(48.86, 2.36);
+describe('buildDirectionsRequestBody', () => {
+    it('ordonne les coordonnées en [longitude, latitude], origine puis destination', () => {
+        const origin = new GeoCoordinates(48.8566, 2.3522)
+        const destination = new GeoCoordinates(48.86, 2.36)
 
-    expect(buildDirectionsRequestBody(origin, destination)).toEqual({
-      coordinates: [
-        [2.3522, 48.8566],
-        [2.36, 48.86],
-      ],
-    });
-  });
-});
-
-describe("toRouteFeature", () => {
-  it("mappe une réponse ORS vers une Feature GeoJSON LineString avec distance/durée arrondies", () => {
-    const orsResponse = {
-      features: [
-        {
-          geometry: {
-            type: "LineString" as const,
+        expect(buildDirectionsRequestBody(origin, destination)).toEqual({
             coordinates: [
-              [2.3522, 48.8566],
-              [2.353, 48.857],
-            ] as [number, number][],
-          },
-          properties: {
-            summary: { distance: 845.7, duration: 639.2 },
-          },
-        },
-      ],
-    };
+                [2.3522, 48.8566],
+                [2.36, 48.86]
+            ]
+        })
+    })
+})
 
-    const feature = toRouteFeature(orsResponse);
+describe('toRouteFeature', () => {
+    it('mappe une réponse ORS vers une Feature GeoJSON LineString avec distance/durée arrondies', () => {
+        const orsResponse = {
+            features: [
+                {
+                    geometry: {
+                        type: 'LineString' as const,
+                        coordinates: [
+                            [2.3522, 48.8566],
+                            [2.353, 48.857]
+                        ] as [number, number][]
+                    },
+                    properties: {
+                        summary: { distance: 845.7, duration: 639.2 }
+                    }
+                }
+            ]
+        }
 
-    expect(feature).toEqual({
-      type: "Feature",
-      geometry: {
-        type: "LineString",
-        coordinates: [
-          [2.3522, 48.8566],
-          [2.353, 48.857],
-        ],
-      },
-      properties: {
-        distanceMeters: 846,
-        durationSeconds: 639,
-      },
-    });
-  });
+        const feature = toRouteFeature(orsResponse)
 
-  it("lève RouteNotFoundError quand la réponse ne contient aucune feature", () => {
-    expect(() => toRouteFeature({ features: [] })).toThrow(RouteNotFoundError);
-  });
-});
+        expect(feature).toEqual({
+            type: 'Feature',
+            geometry: {
+                type: 'LineString',
+                coordinates: [
+                    [2.3522, 48.8566],
+                    [2.353, 48.857]
+                ]
+            },
+            properties: {
+                distanceMeters: 846,
+                durationSeconds: 639
+            }
+        })
+    })
 
-describe("buildGeocodeSearchParams", () => {
-  it("transmet la requête telle quelle dans le paramètre text", () => {
-    expect(buildGeocodeSearchParams("12 rue de Rivoli, Paris")).toEqual({
-      text: "12 rue de Rivoli, Paris",
-    });
-  });
-});
+    it('lève RouteNotFoundError quand la réponse ne contient aucune feature', () => {
+        expect(() => toRouteFeature({ features: [] })).toThrow(RouteNotFoundError)
+    })
+})
 
-describe("toGeocodeCandidates", () => {
-  it("mappe une réponse ORS vers des candidats {label, coordinates}, triés comme reçus (pertinence Pelias)", () => {
-    const orsResponse = {
-      features: [
-        {
-          geometry: { type: "Point" as const, coordinates: [2.3522, 48.8566] as [number, number] },
-          properties: { label: "12 Rue de Rivoli, 75001 Paris, France" },
-        },
-        {
-          geometry: { type: "Point" as const, coordinates: [2.36, 48.86] as [number, number] },
-          properties: { label: "12 Rue de Rivoli, 75004 Paris, France" },
-        },
-      ],
-    };
+describe('buildGeocodeSearchParams', () => {
+    it('transmet la requête telle quelle dans le paramètre text', () => {
+        expect(buildGeocodeSearchParams('12 rue de Rivoli, Paris')).toEqual({
+            text: '12 rue de Rivoli, Paris'
+        })
+    })
+})
 
-    expect(toGeocodeCandidates(orsResponse)).toEqual([
-      { label: "12 Rue de Rivoli, 75001 Paris, France", coordinates: new GeoCoordinates(48.8566, 2.3522) },
-      { label: "12 Rue de Rivoli, 75004 Paris, France", coordinates: new GeoCoordinates(48.86, 2.36) },
-    ]);
-  });
+describe('toGeocodeCandidates', () => {
+    it('mappe une réponse ORS vers des candidats {label, coordinates}, triés comme reçus (pertinence Pelias)', () => {
+        const orsResponse = {
+            features: [
+                {
+                    geometry: { type: 'Point' as const, coordinates: [2.3522, 48.8566] as [number, number] },
+                    properties: { label: '12 Rue de Rivoli, 75001 Paris, France' }
+                },
+                {
+                    geometry: { type: 'Point' as const, coordinates: [2.36, 48.86] as [number, number] },
+                    properties: { label: '12 Rue de Rivoli, 75004 Paris, France' }
+                }
+            ]
+        }
 
-  it("lève AddressNotFoundError quand la réponse ne contient aucune feature", () => {
-    expect(() => toGeocodeCandidates({ features: [] })).toThrow(AddressNotFoundError);
-  });
-});
+        expect(toGeocodeCandidates(orsResponse)).toEqual([
+            { label: '12 Rue de Rivoli, 75001 Paris, France', coordinates: new GeoCoordinates(48.8566, 2.3522) },
+            { label: '12 Rue de Rivoli, 75004 Paris, France', coordinates: new GeoCoordinates(48.86, 2.36) }
+        ])
+    })
+
+    it('lève AddressNotFoundError quand la réponse ne contient aucune feature', () => {
+        expect(() => toGeocodeCandidates({ features: [] })).toThrow(AddressNotFoundError)
+    })
+})

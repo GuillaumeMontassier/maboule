@@ -5,7 +5,7 @@
 // 09) : les classes Tailwind elles-memes restent des chaines litterales
 // (requis par le scanner JIT), a garder synchronisees avec ces valeurs en cas
 // de changement de mise en page.
-export const MOBILE_BREAKPOINT_PX = 768; // meme valeur que le variant Tailwind `md:`
+export const MOBILE_BREAKPOINT_PX = 768 // meme valeur que le variant Tailwind `md:`
 
 // Hauteur mesuree en navigateur (Playwright) a 375px de large, etat par
 // defaut (recherche non focalisee - donc pas d'historique/resultats deroules
@@ -13,4 +13,4 @@ export const MOBILE_BREAKPOINT_PX = 768; // meme valeur que le variant Tailwind 
 // marqueur de la carte a deja perdu le focus du champ de recherche (le clic
 // sur la carte le lui retire), donc l'etat dropdown ouvert n'a pas besoin
 // d'etre couvert ici. Arrondie a la hausse (mesure : 297px).
-export const MOBILE_SEARCH_FILTERS_HEIGHT_PX = 300;
+export const MOBILE_SEARCH_FILTERS_HEIGHT_PX = 300
