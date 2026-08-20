@@ -4,16 +4,18 @@
 
 **Blocked by:** aucun
 
-**Status:** ready-for-agent
+**Status:** done
 
 **Origine :** Session `/grill-with-docs` du 2026-08-20 (voir transcript de conversation). Actuellement les pilules de tous les groupes sont à plat dans la même rangée (décision ticket 20), sans aucune indication visuelle que "Stabilisé/cendrée" et "Sable" appartiennent au même groupe que "Découvert"/"Extérieur couvert" — problème signalé par l'utilisateur.
 
-- [ ] Nouveau composant (ex. `PillGroup.tsx` ou extension de `PillFilterGroup.tsx`) : segment libellé `<span>` non-focusable/non-cliquable + les boutons-options existants, dans un conteneur `rounded-full` unique
-- [ ] Couleur du segment libellé distincte des pilules actives/inactives, mais dans la même famille neutre (nuance, pas une couleur différente) : `bg-gray-300 text-gray-700` / `dark:bg-gray-600 dark:text-gray-300` (un cran plus soutenu que `PILL_INACTIVE_CLASS`)
-- [ ] Coins arrondis uniquement aux extrémités du groupe (segment libellé = coin gauche, dernier segment-option = coin droit), pas sur les segments intermédiaires
-- [ ] `aria-label` déjà présent sur chaque pilule-option (`${groupLabel} : ${value}`) conservé tel quel — le segment libellé visuel est redondant avec lui pour un lecteur d'écran, mais reste utile visuellement
-- [ ] Aucune régression sur le comportement multi-sélection existant des groupes (indépendant par pilule, ticket 20)
-- [ ] Tests de composant : segment libellé non interactif (pas de rôle bouton, pas dans l'ordre de tabulation), rendu correct des coins arrondis aux extrémités
+- [x] `PillFilterGroup.tsx` étendu : segment libellé `<span>` non-focusable/non-cliquable + les boutons-options existants, dans un conteneur `inline-flex overflow-hidden rounded-full` unique (clip plutôt que calculer quel segment arrondir — plus simple, généralise si un groupe gagne plus de 2 options)
+- [x] Couleur du segment libellé (`PILL_GROUP_LABEL_CLASS`, `pillStyles.ts`) : `bg-gray-300 text-gray-700` / `dark:bg-gray-600 dark:text-gray-300` — nuance distincte des pilules actives/inactives dans la même famille neutre, vérifiée en navigateur (light + dark)
+- [x] Coins arrondis uniquement aux extrémités du groupe via `overflow-hidden` sur le conteneur (pas de calcul par segment)
+- [x] `aria-label` de chaque pilule-option inchangé
+- [x] Aucune régression sur le comportement multi-sélection existant (test dédié + suite complète verte, 104 tests)
+- [x] Tests de composant (`PillFilterGroup.test.tsx`) : segment libellé rendu en `<span>` (pas de rôle bouton), `tabIndex === -1`, sélection multi-pilule indépendante conservée
+
+**Bug trouvé et corrigé en cours de route :** l'anneau de focus des pilules-options (`FOCUS_RING_CLASS`, offset positif) aurait été rogné par le nouveau `overflow-hidden` du conteneur — même problème que celui déjà identifié et corrigé sur les listes scrollables au ticket 28. Basculé sur `FOCUS_RING_INSET_CLASS` (déjà introduite au ticket 28) pour ces boutons ; `PILL_BASE_CLASS` (`rounded-full`) ne convenait plus non plus pour les segments (le coin arrondi devait venir du conteneur, pas du bouton, et un simple `rounded-none` en fin de chaîne n'aurait pas gagné la cascade Tailwind contre le `rounded-full` déjà présent dans la constante partagée) — nouvelle constante `PILL_SEGMENT_BASE_CLASS` sans arrondi, dédiée aux segments. Vérifié visuellement (Playwright) : anneau pleinement contenu dans le segment, aucun rognage, light et dark mode.
 
 **Out of scope :**
 - Le groupe "Accès" (ticket 32, structure différente — 2 segments exclusifs)
