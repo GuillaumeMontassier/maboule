@@ -148,13 +148,13 @@ describe('App', () => {
         expect(search.compareDocumentPosition(firstFilterPill) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 
-    it('recharge les boulodromes avec le filtre appliqué quand la pilule "Accès libre" est activée', async () => {
+    it('recharge les boulodromes avec le filtre appliqué quand le segment "Accès : Libre" est activé', async () => {
         vi.mocked(fetchBoulodromes).mockResolvedValue(sampleCollection)
 
         render(<App />)
         await waitFor(() => expect(fetchBoulodromes).toHaveBeenCalledTimes(1))
 
-        fireEvent.click(screen.getByRole('button', { name: 'Accès libre' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Accès : Libre' }))
 
         await waitFor(() =>
             expect(fetchBoulodromes).toHaveBeenCalledWith({
@@ -165,13 +165,13 @@ describe('App', () => {
         )
     })
 
-    it('retire le filtre "Accès libre" en désactivant à nouveau la pilule', async () => {
+    it('retire le filtre "Accès" en désactivant à nouveau le segment actif', async () => {
         vi.mocked(fetchBoulodromes).mockResolvedValue(sampleCollection)
 
         render(<App />)
         await waitFor(() => expect(fetchBoulodromes).toHaveBeenCalledTimes(1))
 
-        const pill = screen.getByRole('button', { name: 'Accès libre' })
+        const pill = screen.getByRole('button', { name: 'Accès : Libre' })
         fireEvent.click(pill)
         await waitFor(() =>
             expect(fetchBoulodromes).toHaveBeenCalledWith({

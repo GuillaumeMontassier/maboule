@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { fetchBoulodromes, type BoulodromesFeatureCollection } from './api/boulodromes'
 import { BoulodromesMap } from './components/BoulodromesMap'
 import { PillFilterGroup } from './components/PillFilterGroup'
-import { FreeAccessFilter } from './components/FreeAccessFilter'
+import { AccessFilter } from './components/AccessFilter'
 import { ThemeToggle } from './components/ThemeToggle'
 import { EQUIPMENT_TYPES, GROUND_TYPES } from './constants/boulodromeFilters'
 import './App.css'
@@ -65,7 +65,7 @@ function App() {
                     selected={equipmentTypes}
                     onChange={setEquipmentTypes}
                 />
-                <FreeAccessFilter value={freeAccess} onChange={setFreeAccess} />
+                <AccessFilter value={freeAccess} onChange={setFreeAccess} />
             </div>
         </>
     )
