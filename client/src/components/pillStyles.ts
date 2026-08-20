@@ -1,13 +1,10 @@
-export const PILL_BASE_CLASS = 'rounded-full px-3 py-1 text-xs font-medium transition-colors'
-
-// Meme padding/texte que PILL_BASE_CLASS mais sans `rounded-full` - pour les
-// segments d'une pilule-groupe (ticket 31), ou c'est le conteneur qui porte
-// l'arrondi (`overflow-hidden rounded-full`) plutot que chaque segment
-// individuellement. Constante separee plutot qu'un `rounded-none` ajoute a
-// la suite de PILL_BASE_CLASS : Tailwind ordonne ses classes de rayon par
-// echelle (rounded-none avant rounded-full) dans la feuille generee, pas par
-// ordre d'apparition dans `className` - un simple ajout en fin de chaine ne
-// gagnerait donc pas la cascade contre le `rounded-full` deja present.
+// Padding/texte des segments d'une pilule-groupe (ticket 31), sans
+// `rounded-full` - c'est le conteneur qui porte l'arrondi (`overflow-hidden
+// rounded-full`) plutot que chaque segment individuellement. `py-2`/hauteur
+// fixe `h-8` sur le conteneur (ticket 33) pour approcher au pixel pres la
+// hauteur du champ de recherche (34px, bordure comprise) : les segments
+// n'ont pas de bordure, l'ecart residuel de 2px est juge negligeable a
+// l'oeil plutot que corrige par une valeur arbitraire non documentee.
 export const PILL_SEGMENT_BASE_CLASS = 'px-3 py-2 text-xs font-medium transition-colors'
 
 export const PILL_ACTIVE_CLASS = 'bg-blue-600 text-white dark:bg-blue-500'
