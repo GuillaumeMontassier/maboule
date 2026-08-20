@@ -1,3 +1,4 @@
+import { FOCUS_RING_CLASS } from "./focusStyles";
 import { PILL_ACTIVE_CLASS, PILL_BASE_CLASS, PILL_INACTIVE_CLASS } from "./pillStyles";
 
 interface PillFilterGroupProps {
@@ -31,7 +32,7 @@ export function PillFilterGroup({ groupLabel, options, selected, onChange }: Pil
             aria-pressed={active}
             aria-label={`${groupLabel} : ${value}`}
             onClick={() => toggle(value)}
-            className={`${PILL_BASE_CLASS} ${active ? PILL_ACTIVE_CLASS : PILL_INACTIVE_CLASS}`}
+            className={`${PILL_BASE_CLASS} ${active ? PILL_ACTIVE_CLASS : PILL_INACTIVE_CLASS} ${FOCUS_RING_CLASS}`}
           >
             {value}
           </button>

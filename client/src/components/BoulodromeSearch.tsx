@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 import { fetchBoulodromes, type BoulodromesFeatureCollection } from "../api/boulodromes";
 import type { BoulodromeHistoryEntry } from "../hooks/use-boulodrome-history";
 import { distinctSiteName } from "../lib/site-name";
+import { FOCUS_RING_CLASS } from "./focusStyles";
 
 type SearchState =
   | { status: "idle" }
@@ -69,7 +70,7 @@ function SelectableList<T>({ items, keyOf, onSelect, renderItem, renderSecondary
           <button
             type="button"
             onClick={() => onSelect(item)}
-            className="block flex-1 cursor-pointer px-2.5 py-1.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700"
+            className={`block flex-1 cursor-pointer px-2.5 py-1.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${FOCUS_RING_CLASS}`}
           >
             {renderItem(item)}
           </button>
@@ -225,14 +226,14 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [], onRemoveFro
           placeholder="Rechercher un boulodrome…"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          className={`w-full rounded-md border border-gray-300 px-2 py-1.5 dark:border-gray-600 dark:placeholder-gray-400 ${SURFACE_CLASS} ${hasQuery ? "pr-7" : ""}`}
+          className={`w-full rounded-md border border-gray-300 px-2 py-1.5 dark:border-gray-600 dark:placeholder-gray-400 ${SURFACE_CLASS} ${hasQuery ? "pr-7" : ""} ${FOCUS_RING_CLASS}`}
         />
         {hasQuery && (
           <button
             type="button"
             onClick={handleClear}
             aria-label="Effacer la recherche"
-            className={`absolute top-1/2 right-1.5 -translate-y-1/2 ${ICON_BUTTON_CLASS}`}
+            className={`absolute top-1/2 right-1.5 -translate-y-1/2 ${ICON_BUTTON_CLASS} ${FOCUS_RING_CLASS}`}
           >
             <X size={16} />
           </button>
@@ -275,7 +276,7 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [], onRemoveFro
                 // aria-label identique sur leurs deux croix les rendrait
                 // indistinguables au clavier/lecteur d'ecran.
                 aria-label={`Supprimer ${historySiteName(entry) ? `${historySiteName(entry)} ${entry.name}` : entry.name} de l'historique`}
-                className={`px-2 ${ICON_BUTTON_CLASS}`}
+                className={`px-2 ${ICON_BUTTON_CLASS} ${FOCUS_RING_CLASS}`}
               >
                 <X size={14} />
               </button>

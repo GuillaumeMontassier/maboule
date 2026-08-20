@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Search } from "lucide-react";
 import { fetchRoute, type RouteFeature } from "../api/route";
 import { fetchGeocodeCandidates, type GeocodeCandidate } from "../api/geocode";
+import { FOCUS_RING_CLASS } from "./focusStyles";
 
 type RouteState =
   | { status: "idle" }
@@ -171,7 +172,7 @@ export function RoutePanel({ boulodromeId, onRouteChange }: RoutePanelProps) {
         type="button"
         onClick={handleUseMyLocation}
         disabled={busy}
-        className="w-full cursor-pointer rounded-md border border-gray-300 bg-gray-100 px-2 py-1.5 disabled:cursor-default disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700"
+        className={`w-full cursor-pointer rounded-md border border-gray-300 bg-gray-100 px-2 py-1.5 disabled:cursor-default disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 ${FOCUS_RING_CLASS}`}
       >
         Utiliser ma position
       </button>
@@ -184,14 +185,14 @@ export function RoutePanel({ boulodromeId, onRouteChange }: RoutePanelProps) {
           value={addressQuery}
           onChange={(event) => setAddressQuery(event.target.value)}
           disabled={busy}
-          className="min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1.5 dark:border-gray-600 dark:bg-gray-700 dark:placeholder-gray-400"
+          className={`min-w-0 flex-1 rounded-md border border-gray-300 px-2 py-1.5 dark:border-gray-600 dark:bg-gray-700 dark:placeholder-gray-400 ${FOCUS_RING_CLASS}`}
         />
         <button
           type="submit"
           disabled={busy}
           aria-label="Rechercher l'adresse"
           title="Rechercher l'adresse"
-          className="flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-md border border-gray-300 bg-gray-100 disabled:cursor-default disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700"
+          className={`flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center rounded-md border border-gray-300 bg-gray-100 disabled:cursor-default disabled:opacity-60 dark:border-gray-600 dark:bg-gray-700 ${FOCUS_RING_CLASS}`}
         >
           <Search size={16} />
         </button>
@@ -207,7 +208,7 @@ export function RoutePanel({ boulodromeId, onRouteChange }: RoutePanelProps) {
               <button
                 type="button"
                 onClick={() => handleSelectCandidate(candidate)}
-                className="block w-full cursor-pointer px-2 py-1.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700"
+                className={`block w-full cursor-pointer px-2 py-1.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${FOCUS_RING_CLASS}`}
               >
                 {candidate.label}
               </button>

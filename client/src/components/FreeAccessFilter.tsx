@@ -1,3 +1,4 @@
+import { FOCUS_RING_CLASS } from "./focusStyles";
 import { PILL_ACTIVE_CLASS, PILL_BASE_CLASS, PILL_INACTIVE_CLASS } from "./pillStyles";
 
 interface FreeAccessFilterProps {
@@ -17,7 +18,7 @@ export function FreeAccessFilter({ value, onChange }: FreeAccessFilterProps) {
       type="button"
       aria-pressed={active}
       onClick={() => onChange(active ? undefined : true)}
-      className={`${PILL_BASE_CLASS} ${active ? PILL_ACTIVE_CLASS : PILL_INACTIVE_CLASS}`}
+      className={`${PILL_BASE_CLASS} ${active ? PILL_ACTIVE_CLASS : PILL_INACTIVE_CLASS} ${FOCUS_RING_CLASS}`}
     >
       Accès libre
     </button>

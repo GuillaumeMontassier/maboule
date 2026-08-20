@@ -1,5 +1,6 @@
 import { Moon, Sun } from "lucide-react";
 import { useTheme } from "../hooks/use-theme";
+import { FOCUS_RING_CLASS } from "./focusStyles";
 
 export function ThemeToggle() {
   const { theme, toggleTheme } = useTheme();
@@ -18,7 +19,7 @@ export function ThemeToggle() {
       // tactile) - verifie en navigateur (Playwright, mode tactile,
       // l'hypothese la plus large) : aucun chevauchement avec le controle de
       // zoom. Meme marge laterale de 12px que les autres panneaux flottants.
-      className="fixed right-3 bottom-24 z-[1000] flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-900 shadow-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
+      className={`fixed right-3 bottom-24 z-[1000] flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-900 shadow-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 ${FOCUS_RING_CLASS}`}
     >
       {isDark ? <Sun size={18} /> : <Moon size={18} />}
     </button>
