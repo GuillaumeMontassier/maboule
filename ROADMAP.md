@@ -347,6 +347,15 @@ triage, cf. `.scratch/phase-8-standards/spec.md`).
 - [ ] Ticket 05 — Trancher et appliquer le traitement de l'état de
       chargement/erreur des cafés à proximité (silencieux assumé vs. exposé)
 
+Ajout hors périmètre de l'audit standards ci-dessus, mais logé ici comme
+prochain chantier d'environnement de dev (cf.
+`docs/adr/0003-vscode-dev-containers-for-dev-environment.md`) :
+
+- [ ] Ticket 06 — Scaffolder `.devcontainer/devcontainer.json` (VS Code Dev
+      Containers) pour le workspace `client`/`server`, référençant le
+      `docker-compose.yml` existant (service `db`) via `dockerComposeFile`
+      plutôt que de le dupliquer
+
 ## Phase 8 — Contributions utilisateurs
 
 - [ ] Formulaire de suggestion (ajout/modification de boulodrome ou café)
