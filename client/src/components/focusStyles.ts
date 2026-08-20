@@ -9,3 +9,13 @@
 // distinct du style hover.
 export const FOCUS_RING_CLASS =
     'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 dark:focus-visible:outline-blue-400'
+
+// Variante pour les items de liste dans un conteneur `overflow-y-auto`
+// (résultats de recherche, historique, candidats d'adresse) : ces boutons
+// touchent les bords du conteneur scrollable, qui rogne tout ce qui dépasse
+// sa propre boîte - un outline à offset positif s'y retrouve donc coupé sur
+// 3 côtés (vérifié visuellement, ticket 28). Offset négatif : l'anneau reste
+// entièrement dans la boîte du bouton, jamais rogné, quel que soit le
+// conteneur.
+export const FOCUS_RING_INSET_CLASS =
+    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-blue-600 dark:focus-visible:outline-blue-400'

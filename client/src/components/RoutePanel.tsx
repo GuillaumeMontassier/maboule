@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import { Search } from 'lucide-react'
 import { fetchRoute, type RouteFeature } from '../api/route'
 import { fetchGeocodeCandidates, type GeocodeCandidate } from '../api/geocode'
-import { FOCUS_RING_CLASS } from './focusStyles'
+import { FOCUS_RING_CLASS, FOCUS_RING_INSET_CLASS } from './focusStyles'
 
 type RouteState =
     | { status: 'idle' }
@@ -210,7 +210,7 @@ export function RoutePanel({ boulodromeId, onRouteChange }: RoutePanelProps) {
                             <button
                                 type="button"
                                 onClick={() => handleSelectCandidate(candidate)}
-                                className={`block w-full cursor-pointer px-2 py-1.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${FOCUS_RING_CLASS}`}
+                                className={`block w-full cursor-pointer px-2 py-1.5 text-left hover:bg-gray-100 dark:hover:bg-gray-700 ${FOCUS_RING_INSET_CLASS}`}
                             >
                                 {candidate.label}
                             </button>
