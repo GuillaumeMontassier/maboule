@@ -1,21 +1,30 @@
-export const PILL_BASE_CLASS = 'rounded-full px-3 py-1 text-xs font-medium transition-colors'
+export const PILL_BASE_CLASS = 'rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors'
 
-// Meme padding/texte que PILL_BASE_CLASS mais sans `rounded-full` - pour les
-// segments d'une pilule-groupe (ticket 31), ou c'est le conteneur qui porte
-// l'arrondi (`overflow-hidden rounded-full`) plutot que chaque segment
-// individuellement. Constante separee plutot qu'un `rounded-none` ajoute a
-// la suite de PILL_BASE_CLASS : Tailwind ordonne ses classes de rayon par
-// echelle (rounded-none avant rounded-full) dans la feuille generee, pas par
-// ordre d'apparition dans `className` - un simple ajout en fin de chaine ne
-// gagnerait donc pas la cascade contre le `rounded-full` deja present.
-export const PILL_SEGMENT_BASE_CLASS = 'px-3 py-2 text-xs font-medium transition-colors'
+// Segment individuel d'une pilule-groupe (ticket 31) : chaque option est une
+// pilule arrondie a part entiere (`rounded-full`), separee des autres par le
+// `gap-1` du conteneur, plutot qu'une seule barre continue decoupee en
+// tranches - `h-6`/`my-auto` la centrent verticalement dans le conteneur
+// (`h-8`) sans etirer son padding. `whitespace-nowrap` : un segment ne doit
+// jamais laisser son texte retomber sur deux lignes quand le conteneur
+// parent le compresse (flex-wrap mobile, App.tsx) - une hauteur fixe (`h-6`)
+// combinee a du texte sur deux lignes casserait la forme de la pilule.
+export const PILL_SEGMENT_BASE_CLASS = 'h-6 my-auto px-3 text-xs font-medium whitespace-nowrap transition-colors rounded-full'
 
 export const PILL_ACTIVE_CLASS = 'bg-blue-600 text-white dark:bg-blue-500'
 export const PILL_INACTIVE_CLASS =
     'bg-gray-200 text-gray-900 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-100 dark:hover:bg-gray-600'
 
-// Segment libellé non-cliquable d'une pilule-groupe (ticket 31) : nuance
-// distincte des pilules actives (bleu) et inactives (gris clair) mais dans
-// la meme famille neutre, pas une couleur differente - un cran plus soutenu
-// que PILL_INACTIVE_CLASS.
-export const PILL_GROUP_LABEL_CLASS = 'bg-gray-300 text-gray-700 dark:bg-gray-600 dark:text-gray-300'
+// Contour englobant d'une pilule-groupe (ticket 31) : fond, bordure et
+// arrondi du conteneur qui porte le libellé + les segments. `shrink-0` : un
+// enfant de conteneur flex-wrap (App.tsx) se compresse par defaut avant de
+// passer a la ligne suivante - ce groupe doit au contraire garder sa largeur
+// naturelle et retomber en entier sur une nouvelle ligne plutot que de
+// compresser ses segments (meme raison que `whitespace-nowrap` ci-dessus).
+export const PILL_GROUP_CONTAINER_CLASS =
+    'inline-flex h-8 shrink-0 items-center gap-1 overflow-hidden rounded-full border border-gray-300 bg-white pl-2.5 pr-1 dark:border-gray-600 dark:bg-gray-800'
+
+// Libellé non-cliquable d'une pilule-groupe (ticket 31) : meme gabarit de
+// texte (`text-xs font-medium`) que les segments (PILL_SEGMENT_BASE_CLASS)
+// pour rester aligne visuellement avec eux, plutot que d'heriter du
+// `text-sm` du conteneur de filtres (App.tsx).
+export const PILL_GROUP_LABEL_CLASS = 'text-xs font-medium whitespace-nowrap text-gray-700 dark:text-gray-300'

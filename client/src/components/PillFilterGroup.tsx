@@ -1,5 +1,11 @@
 import { FOCUS_RING_INSET_CLASS } from './focusStyles'
-import { PILL_ACTIVE_CLASS, PILL_GROUP_LABEL_CLASS, PILL_INACTIVE_CLASS, PILL_SEGMENT_BASE_CLASS } from './pillStyles'
+import {
+    PILL_ACTIVE_CLASS,
+    PILL_GROUP_CONTAINER_CLASS,
+    PILL_GROUP_LABEL_CLASS,
+    PILL_INACTIVE_CLASS,
+    PILL_SEGMENT_BASE_CLASS,
+} from './pillStyles'
 
 interface PillFilterGroupProps {
     groupLabel: string
@@ -26,8 +32,8 @@ export function PillFilterGroup({ groupLabel, options, selected, onChange }: Pil
     }
 
     return (
-        <div className="inline-flex overflow-hidden rounded-full h-8">
-            <span className={`${PILL_SEGMENT_BASE_CLASS} ${PILL_GROUP_LABEL_CLASS}`}>{groupLabel}</span>
+        <div className={PILL_GROUP_CONTAINER_CLASS}>
+            <span className={PILL_GROUP_LABEL_CLASS}>{groupLabel}</span>
             {options.map((value) => {
                 const active = selected.includes(value)
                 return (
