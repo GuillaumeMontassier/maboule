@@ -202,7 +202,7 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [], onRemoveFro
         // premiere fois que deux de ces panneaux ont besoin d'un ordre explicite
         // entre eux.
         <div
-            className="fixed top-3 left-1/2 z-[1100] w-[280px] -translate-x-1/2 text-sm md:left-3 md:translate-x-0"
+            className="fixed top-3 left-1/2 z-[1100] w-[min(94vw,370px)] -translate-x-1/2 text-sm md:left-3 md:w-[280px] md:translate-x-0"
             onFocus={() => {
                 setIsFocused(true)
                 if (suppressReopenOnFocusRef.current) {

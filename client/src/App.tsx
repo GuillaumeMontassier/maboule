@@ -52,7 +52,7 @@ function App() {
           `z-[1100]` explicite du widget de recherche (BoulodromeSearch.tsx)
           qui l'emporte désormais sur ce bloc plutôt que de dépendre de
           l'ordre de peinture (ticket 25). */}
-            <div className="fixed top-14 left-1/2 z-[1000] flex w-[280px] -translate-x-1/2 flex-row flex-wrap gap-1.5 text-sm md:top-3 md:left-[300px] md:w-auto md:translate-x-0">
+            <div className="fixed top-14 left-1/2 z-[1000] flex w-[min(94vw,370px)] -translate-x-1/2 flex-row flex-wrap gap-1.5 text-sm md:top-3 md:left-[300px] md:w-auto md:translate-x-0">
                 <PillFilterGroup
                     groupLabel="Sol"
                     options={GROUND_TYPES}
