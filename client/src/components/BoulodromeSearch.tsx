@@ -4,6 +4,7 @@ import { fetchBoulodromes, type BoulodromesFeatureCollection } from '../api/boul
 import type { BoulodromeHistoryEntry } from '../hooks/use-boulodrome-history'
 import { distinctSiteName } from '../lib/site-name'
 import { FOCUS_RING_CLASS, FOCUS_RING_INSET_CLASS } from './focusStyles'
+import { FLOATING_SURFACE_CLASS, FLOATING_SURFACE_COLOR_CLASS } from './surfaceStyles'
 
 type SearchState =
     | { status: 'idle' }
@@ -25,17 +26,10 @@ function historySiteName(entry: BoulodromeHistoryEntry): string | null {
     return distinctSiteName(entry.name, entry.siteName)
 }
 
-// Fond opaque partage par tous les panneaux flottants du widget (champ +
-// cards loading/error/vide/resultats) - un seul token pour les deux, plutot
-// que de dupliquer bg-white/dark:bg-gray-800 sur le champ separement (ticket
-// 18 : le champ n'avait pas de fond en light mode, laissant transparaitre la
-// carte derriere lui).
-const SURFACE_CLASS = 'bg-white text-gray-900 dark:bg-gray-800 dark:text-gray-100'
-
 // Chrome de card blanche partagee par les etats loading/error/vide/resultats
 // (le padding est omis ici : la liste de resultats n'en a pas, le padding est
 // porte par ses boutons enfants au lieu du <ul>).
-const STATUS_CARD_CLASS = `mt-1.5 rounded-lg border border-gray-300 shadow-sm dark:border-gray-600 ${SURFACE_CLASS}`
+const STATUS_CARD_CLASS = `mt-1.5 ${FLOATING_SURFACE_CLASS}`
 
 // Style partage par les boutons icone du widget (croix d'effacement du champ,
 // croix de suppression d'une entree d'historique).
@@ -226,7 +220,7 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [], onRemoveFro
                     placeholder="Rechercher un boulodrome…"
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
-                    className={`w-full rounded-md border border-gray-300 px-2 py-1.5 dark:border-gray-600 dark:placeholder-gray-400 ${SURFACE_CLASS} ${hasQuery ? 'pr-7' : ''} ${FOCUS_RING_CLASS}`}
+                    className={`w-full rounded-md border border-gray-300 px-2 py-1.5 dark:border-gray-600 dark:placeholder-gray-400 ${FLOATING_SURFACE_COLOR_CLASS} ${hasQuery ? 'pr-7' : ''} ${FOCUS_RING_CLASS}`}
                 />
                 {hasQuery && (
                     <button
