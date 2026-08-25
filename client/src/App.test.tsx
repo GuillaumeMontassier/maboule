@@ -217,4 +217,53 @@ describe('App', () => {
             })
         )
     })
+
+    it("n'affiche pas le bouton de réinitialisation des filtres quand aucun filtre n'est actif", async () => {
+        vi.mocked(fetchBoulodromes).mockResolvedValue(sampleCollection)
+
+        render(<App />)
+        await waitFor(() => expect(fetchBoulodromes).toHaveBeenCalledTimes(1))
+
+        expect(screen.queryByRole('button', { name: 'Réinitialiser les filtres' })).toBeNull()
+    })
+
+    it("affiche le bouton de réinitialisation dès qu'un filtre devient actif", async () => {
+        vi.mocked(fetchBoulodromes).mockResolvedValue(sampleCollection)
+
+        render(<App />)
+        await waitFor(() => expect(fetchBoulodromes).toHaveBeenCalledTimes(1))
+
+        fireEvent.click(screen.getByRole('button', { name: 'Sol : Sable' }))
+
+        expect(await screen.findByRole('button', { name: 'Réinitialiser les filtres' })).toBeTruthy()
+    })
+
+    it('réinitialise les 3 groupes de filtres en un clic sur le bouton de réinitialisation', async () => {
+        vi.mocked(fetchBoulodromes).mockResolvedValue(sampleCollection)
+
+        render(<App />)
+        await waitFor(() => expect(fetchBoulodromes).toHaveBeenCalledTimes(1))
+
+        fireEvent.click(screen.getByRole('button', { name: 'Sol : Sable' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Environnement : Découvert' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Accès : Libre' }))
+        await waitFor(() =>
+            expect(fetchBoulodromes).toHaveBeenCalledWith({
+                groundTypes: ['Sable'],
+                equipmentTypes: ['Découvert'],
+                freeAccess: true
+            })
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: 'Réinitialiser les filtres' }))
+
+        await waitFor(() =>
+            expect(fetchBoulodromes).toHaveBeenCalledWith({
+                groundTypes: [],
+                equipmentTypes: [],
+                freeAccess: undefined
+            })
+        )
+        expect(screen.queryByRole('button', { name: 'Réinitialiser les filtres' })).toBeNull()
+    })
 })
