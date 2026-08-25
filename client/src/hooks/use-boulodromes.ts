@@ -12,13 +12,51 @@ export interface BoulodromesPillFilters {
     freeAccess: boolean | undefined
 }
 
+// Distingue le tout premier chargement (bloquant : aucune donnee a montrer
+// tant qu'il n'a pas reussi au moins une fois) d'un rechargement en
+// arriere-plan (pan/zoom apres un premier succes) - ticket 37, corrige le
+// clignotement du ticket 36 ou les deux etaient confondus sous un seul
+// `isFetching`. `status: 'ready'` signifie "au moins un succes a eu lieu" :
+// un rechargement ulterieur y reste (`isRefetching`/`refetchError`), meme
+// s'il echoue - contrairement a un echec du tout premier chargement, qui
+// repasse en `initial-error` (toujours rien a montrer).
+export type BoulodromesState =
+    | { status: 'initial-loading' }
+    | { status: 'initial-error'; message: string }
+    | { status: 'ready'; isRefetching: boolean; refetchError: string | null }
+
+export interface BoulodromesStatusDisplay {
+    // `null` signifie "rien a afficher" (rechargement reussi ou silencieux) -
+    // distinct d'une chaine vide, qui reste un message a afficher (cas limite
+    // d'une erreur au message vide).
+    message: string | null
+    isError: boolean
+}
+
+// Traduit `BoulodromesState` en ce qu'il faut montrer a l'utilisateur -
+// colocalisee avec le type plutot que dispersee en ternaires chez l'appelant
+// (App.tsx), pour que les deux evoluent ensemble. Le `switch` sans `default`
+// est volontaire : TypeScript signale une erreur de compilation si un
+// variant de `BoulodromesState` n'est pas gere (le type de retour ne peut
+// pas etre satisfait sur tous les chemins), ce qui force a mettre a jour
+// cette fonction des qu'un variant est ajoute/retire.
+export function describeBoulodromesState(state: BoulodromesState): BoulodromesStatusDisplay {
+    switch (state.status) {
+        case 'initial-loading':
+            return { message: 'Chargement des boulodromes…', isError: false }
+        case 'initial-error':
+            return { message: state.message, isError: true }
+        case 'ready':
+            return { message: state.refetchError, isError: state.refetchError !== null }
+    }
+}
+
 export interface UseBoulodromesResult {
     // Donnees du bbox actuel, filtrees en memoire par les pilules - jamais
-    // videes pendant un nouveau fetch (cf. `isFetching` ci-dessous), pour
-    // garder les marqueurs deja charges affiches sans clignotement.
+    // videes pendant un rechargement (cf. `state` ci-dessous), pour garder
+    // les marqueurs deja charges affiches sans clignotement.
     features: BoulodromesFeatureCollection
-    isFetching: boolean
-    error: string | null
+    state: BoulodromesState
     setBbox: (bbox: Bbox) => void
 }
 
@@ -52,8 +90,7 @@ function matchesFilters(properties: BoulodromeProperties, filters: BoulodromesPi
 export function useBoulodromes(filters: BoulodromesPillFilters): UseBoulodromesResult {
     const [bbox, setBboxState] = useState<Bbox | null>(null)
     const [rawData, setRawData] = useState<BoulodromesFeatureCollection>(EMPTY_COLLECTION)
-    const [isFetching, setIsFetching] = useState(false)
-    const [error, setError] = useState<string | null>(null)
+    const [state, setState] = useState<BoulodromesState>({ status: 'initial-loading' })
 
     // Reference stable (pour BoundsWatcher, BoulodromesMap.tsx) qui ignore un
     // bbox inchange (meme rectangle rapporte deux fois par exemple) plutot que
@@ -68,17 +105,26 @@ export function useBoulodromes(filters: BoulodromesPillFilters): UseBoulodromesR
         let cancelled = false
 
         async function load(bbox: Bbox) {
-            setIsFetching(true)
-            setError(null)
+            // `status === 'ready'` signifie "au moins un succes a deja eu lieu" -
+            // ce test (plutot qu'un flag separe ou `rawData.features.length`, qui
+            // vaut aussi 0 pour un bbox legitimement vide) est ce qui distingue un
+            // rechargement en arriere-plan du tout premier chargement.
+            setState((current) =>
+                current.status === 'ready' ? { ...current, isRefetching: true } : { status: 'initial-loading' }
+            )
             try {
                 const data = await fetchBoulodromes({ bbox })
                 if (cancelled) return
                 setRawData(data)
+                setState({ status: 'ready', isRefetching: false, refetchError: null })
             } catch (err: unknown) {
                 if (cancelled) return
-                setError(err instanceof Error ? err.message : 'Erreur inconnue')
-            } finally {
-                if (!cancelled) setIsFetching(false)
+                const message = err instanceof Error ? err.message : 'Erreur inconnue'
+                setState((current) =>
+                    current.status === 'ready'
+                        ? { status: 'ready', isRefetching: false, refetchError: message }
+                        : { status: 'initial-error', message }
+                )
             }
         }
         load(bbox)
@@ -96,5 +142,5 @@ export function useBoulodromes(filters: BoulodromesPillFilters): UseBoulodromesR
         [rawData, filters]
     )
 
-    return { features, isFetching, error, setBbox }
+    return { features, state, setBbox }
 }

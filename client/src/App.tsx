@@ -4,8 +4,9 @@ import { PillFilterGroup } from './components/PillFilterGroup'
 import { AccessFilter } from './components/AccessFilter'
 import { ThemeToggle } from './components/ThemeToggle'
 import { FOCUS_RING_CLASS } from './components/focusStyles'
+import { FLOATING_SURFACE_CLASS, STATUS_ERROR_TEXT_CLASS } from './components/surfaceStyles'
 import { EQUIPMENT_TYPES, GROUND_TYPES } from './constants/boulodromeFilters'
-import { useBoulodromes } from './hooks/use-boulodromes'
+import { describeBoulodromesState, useBoulodromes } from './hooks/use-boulodromes'
 import './App.css'
 
 function App() {
@@ -20,7 +21,24 @@ function App() {
         () => ({ groundTypes, equipmentTypes, freeAccess }),
         [groundTypes, equipmentTypes, freeAccess]
     )
-    const { features, isFetching, error, setBbox } = useBoulodromes(filters)
+    const { features, state, setBbox } = useBoulodromes(filters)
+
+    // Un seul message a la fois (ticket 37) : le tout premier chargement est
+    // bloquant (rien a montrer), un rechargement en arriere-plan (pan/zoom
+    // apres un premier succes) reste silencieux sauf en cas d'echec, auquel
+    // cas ce message est transitoire - il disparait de lui-meme des que le
+    // rechargement suivant reussit (`refetchError` repasse a `null`). Logique
+    // de traduction colocalisee avec `BoulodromesState`
+    // (`describeBoulodromesState`, use-boulodromes.ts) plutot qu'eparpillee
+    // ici en ternaires.
+    const { message: statusMessage, isError: statusIsError } = describeBoulodromesState(state)
+    const statusClass = [
+        'fixed bottom-3 left-1/2 z-[1000] -translate-x-1/2 px-3 py-2 text-sm',
+        FLOATING_SURFACE_CLASS,
+        statusIsError ? STATUS_ERROR_TEXT_CLASS : ''
+    ]
+        .filter(Boolean)
+        .join(' ')
 
     const hasActiveFilters = groundTypes.length > 0 || equipmentTypes.length > 0 || freeAccess !== undefined
 
@@ -38,10 +56,14 @@ function App() {
           conditionnel loading/success/error qui la demontait/remontait a
           chaque changement de filtre, reinitialisant le zoom/pan Leaflet a
           `PARIS_CENTER`/12 a chaque fois (cause du "dezoom au filtre"
-          signale par l'utilisateur, cf. ADR 0004). Le chargement/l'erreur
-          s'affichent donc en overlay par-dessus, pas a la place de la carte. */}
-            {isFetching && <p className="status">Chargement des boulodromes…</p>}
-            {error && <p className="status status-error">{error}</p>}
+          signale par l'utilisateur, cf. ADR 0004). Petite carte flottante
+          plutot qu'un bloc plein-ecran (ticket 37) : l'ancien bloc `.status`
+          (`height: 100vh`, flux normal) datait du rendu conditionnel
+          ci-dessus et repoussait la carte hors ecran a chaque rechargement
+          une fois celle-ci montee en permanence - visible uniquement pour le
+          tout premier chargement ou un rechargement en echec, jamais pour un
+          rechargement reussi (silencieux, cf. `useBoulodromes`). */}
+            {statusMessage !== null && <p className={statusClass}>{statusMessage}</p>}
             <BoulodromesMap features={features} onBoundsChange={setBbox} />
             {/* Rendu après BoulodromesMap (donc après la recherche dans l'ordre du
           DOM) plutôt qu'avant : la recherche est l'action principale,

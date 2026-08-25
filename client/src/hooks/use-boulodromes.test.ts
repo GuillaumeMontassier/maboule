@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
-import { useBoulodromes, type BoulodromesPillFilters } from './use-boulodromes'
+import { describeBoulodromesState, useBoulodromes, type BoulodromesPillFilters } from './use-boulodromes'
 import { fetchBoulodromes } from '../api/boulodromes'
 import type { Bbox, BoulodromesFeatureCollection } from '../api/boulodromes'
 
@@ -60,6 +60,12 @@ describe('useBoulodromes', () => {
         expect(fetchBoulodromes).not.toHaveBeenCalled()
     })
 
+    it("commence en 'initial-loading' avant tout appel a setBbox", (): void => {
+        const { result } = renderHook(() => useBoulodromes(NO_FILTERS))
+
+        expect(result.current.state).toEqual({ status: 'initial-loading' })
+    })
+
     it(
         'fetch avec le bbox uniquement (pas les filtres de pilule) des que setBbox est appele',
         async (): Promise<void> => {
@@ -73,18 +79,26 @@ describe('useBoulodromes', () => {
         }
     )
 
-    it('marque isFetching pendant la requete puis le repasse a false a la resolution', async (): Promise<void> => {
-        let resolveFetch!: (data: BoulodromesFeatureCollection) => void
-        vi.mocked(fetchBoulodromes).mockReturnValue(new Promise((resolve) => (resolveFetch = resolve)))
-        const { result } = renderHook(() => useBoulodromes(NO_FILTERS))
+    it(
+        'reste en initial-loading pendant le tout premier fetch puis passe a ready a la resolution',
+        async (): Promise<void> => {
+            let resolveFetch!: (data: BoulodromesFeatureCollection) => void
+            vi.mocked(fetchBoulodromes).mockReturnValue(new Promise((resolve) => (resolveFetch = resolve)))
+            const { result } = renderHook(() => useBoulodromes(NO_FILTERS))
 
-        act(() => result.current.setBbox(PARIS_BBOX))
-        expect(result.current.isFetching).toBe(true)
+            act(() => result.current.setBbox(PARIS_BBOX))
+            // `state` vaut deja 'initial-loading' avant meme `setBbox` (valeur par
+            // defaut) - verifier aussi que le fetch a bien demarre confirme que cet
+            // etat est le resultat de l'effet declenche par `setBbox`, pas juste la
+            // valeur initiale inchangee.
+            expect(fetchBoulodromes).toHaveBeenCalledExactlyOnceWith({ bbox: PARIS_BBOX })
+            expect(result.current.state).toEqual({ status: 'initial-loading' })
 
-        await act(async () => resolveFetch(collectionOf(featureWith('data-es:1'))))
+            await act(async () => resolveFetch(collectionOf(featureWith('data-es:1'))))
 
-        expect(result.current.isFetching).toBe(false)
-    })
+            expect(result.current.state).toEqual({ status: 'ready', isRefetching: false, refetchError: null })
+        }
+    )
 
     it(
         'ne redeclenche pas de fetch quand le meme bbox est signale de nouveau (bbox inchange)',
@@ -132,7 +146,7 @@ describe('useBoulodromes', () => {
     )
 
     it(
-        'garde les donnees deja chargees affichees pendant un nouveau fetch (pas de vidage immediat)',
+        'garde les donnees deja chargees affichees pendant un rechargement (pas de vidage immediat)',
         async (): Promise<void> => {
             vi.mocked(fetchBoulodromes).mockResolvedValueOnce(collectionOf(featureWith('data-es:1')))
             const { result } = renderHook(() => useBoulodromes(NO_FILTERS))
@@ -144,11 +158,16 @@ describe('useBoulodromes', () => {
             vi.mocked(fetchBoulodromes).mockReturnValueOnce(new Promise((resolve) => (resolveSecondFetch = resolve)))
             act(() => result.current.setBbox(OTHER_BBOX))
 
-            expect(result.current.isFetching).toBe(true)
+            // Rechargement en arriere-plan (un premier succes existe deja) : le
+            // statut reste 'ready' avec isRefetching a true, contrairement au tout
+            // premier chargement qui repasserait en 'initial-loading' (ticket 37) -
+            // c'est cette distinction qui permet a l'UI de rester silencieuse ici.
+            expect(result.current.state).toEqual({ status: 'ready', isRefetching: true, refetchError: null })
             expect(result.current.features.features).toHaveLength(1)
 
             await act(async () => resolveSecondFetch(collectionOf(featureWith('data-es:2'), featureWith('data-es:3'))))
 
+            expect(result.current.state).toEqual({ status: 'ready', isRefetching: false, refetchError: null })
             expect(result.current.features.features).toHaveLength(2)
         }
     )
@@ -229,13 +248,167 @@ describe('useBoulodromes', () => {
         expect(result.current.features.features[0].properties.id).toBe('data-es:1')
     })
 
-    it('expose un message d’erreur quand le fetch echoue', async (): Promise<void> => {
-        vi.mocked(fetchBoulodromes).mockRejectedValue(new Error('Erreur lors du chargement des boulodromes (500)'))
-        const { result } = renderHook(() => useBoulodromes(NO_FILTERS))
+    describe('premier chargement en echec (ticket 37)', () => {
+        it("passe en 'initial-error' quand le tout premier fetch echoue", async (): Promise<void> => {
+            vi.mocked(fetchBoulodromes).mockRejectedValue(new Error('Erreur lors du chargement des boulodromes (500)'))
+            const { result } = renderHook(() => useBoulodromes(NO_FILTERS))
 
-        act(() => result.current.setBbox(PARIS_BBOX))
+            act(() => result.current.setBbox(PARIS_BBOX))
 
-        await waitFor(() => expect(result.current.error).toBe('Erreur lors du chargement des boulodromes (500)'))
-        expect(result.current.isFetching).toBe(false)
+            await waitFor(() =>
+                expect(result.current.state).toEqual({
+                    status: 'initial-error',
+                    message: 'Erreur lors du chargement des boulodromes (500)'
+                })
+            )
+        })
+
+        it(
+            "un nouveau bbox apres un echec initial repasse en 'initial-loading', pas en rechargement silencieux",
+            async (): Promise<void> => {
+                // Aucun succes n'a encore jamais eu lieu : ce nouveau fetch doit rester
+                // traite comme un premier chargement (bloquant), pas comme un
+                // rechargement en arriere-plan silencieux - il n'y a toujours aucune
+                // donnee a montrer en attendant.
+                vi.mocked(fetchBoulodromes).mockRejectedValueOnce(new Error('boom'))
+                const { result } = renderHook(() => useBoulodromes(NO_FILTERS))
+
+                act(() => result.current.setBbox(PARIS_BBOX))
+                await waitFor(() => expect(result.current.state.status).toBe('initial-error'))
+
+                let resolveRetry!: (data: BoulodromesFeatureCollection) => void
+                vi.mocked(fetchBoulodromes).mockReturnValueOnce(new Promise((resolve) => (resolveRetry = resolve)))
+                act(() => result.current.setBbox(OTHER_BBOX))
+
+                expect(result.current.state).toEqual({ status: 'initial-loading' })
+
+                await act(async () => resolveRetry(collectionOf(featureWith('data-es:1'))))
+                expect(result.current.state).toEqual({ status: 'ready', isRefetching: false, refetchError: null })
+            }
+        )
+    })
+
+    describe('rechargement en arriere-plan en echec (ticket 37)', () => {
+        it(
+            'un rechargement en echec apres un premier succes reste ready avec un refetchError, sans vider les donnees',
+            async (): Promise<void> => {
+                vi.mocked(fetchBoulodromes).mockResolvedValueOnce(collectionOf(featureWith('data-es:1')))
+                const { result } = renderHook(() => useBoulodromes(NO_FILTERS))
+
+                act(() => result.current.setBbox(PARIS_BBOX))
+                await waitFor(() => expect(result.current.state.status).toBe('ready'))
+
+                vi.mocked(fetchBoulodromes).mockRejectedValueOnce(new Error('Erreur reseau'))
+                act(() => result.current.setBbox(OTHER_BBOX))
+
+                await waitFor(() =>
+                    expect(result.current.state).toEqual({
+                        status: 'ready',
+                        isRefetching: false,
+                        refetchError: 'Erreur reseau'
+                    })
+                )
+                // Les donnees du dernier bbox reussi restent affichees.
+                expect(result.current.features.features).toHaveLength(1)
+            }
+        )
+
+        it('le refetchError est efface des que le rechargement suivant reussit', async (): Promise<void> => {
+            vi.mocked(fetchBoulodromes).mockResolvedValueOnce(collectionOf(featureWith('data-es:1')))
+            const { result } = renderHook(() => useBoulodromes(NO_FILTERS))
+            act(() => result.current.setBbox(PARIS_BBOX))
+            await waitFor(() => expect(result.current.state.status).toBe('ready'))
+
+            vi.mocked(fetchBoulodromes).mockRejectedValueOnce(new Error('Erreur reseau'))
+            act(() => result.current.setBbox(OTHER_BBOX))
+            await waitFor(() => expect(result.current.state).toMatchObject({ refetchError: 'Erreur reseau' }))
+
+            vi.mocked(fetchBoulodromes).mockResolvedValueOnce(collectionOf(featureWith('data-es:2')))
+            act(() => result.current.setBbox(PARIS_BBOX))
+
+            await waitFor(() =>
+                expect(result.current.state).toEqual({ status: 'ready', isRefetching: false, refetchError: null })
+            )
+        })
+
+        it(
+            'le refetchError reste affiche pendant que le rechargement suivant est en vol (efface seulement au succes)',
+            async (): Promise<void> => {
+                vi.mocked(fetchBoulodromes).mockResolvedValueOnce(collectionOf(featureWith('data-es:1')))
+                const { result } = renderHook(() => useBoulodromes(NO_FILTERS))
+                act(() => result.current.setBbox(PARIS_BBOX))
+                await waitFor(() => expect(result.current.state.status).toBe('ready'))
+
+                vi.mocked(fetchBoulodromes).mockRejectedValueOnce(new Error('Erreur reseau'))
+                act(() => result.current.setBbox(OTHER_BBOX))
+                await waitFor(() => expect(result.current.state).toMatchObject({ refetchError: 'Erreur reseau' }))
+
+                let resolveRetry!: (data: BoulodromesFeatureCollection) => void
+                vi.mocked(fetchBoulodromes).mockReturnValueOnce(new Promise((resolve) => (resolveRetry = resolve)))
+                act(() => result.current.setBbox(PARIS_BBOX))
+
+                expect(result.current.state).toEqual({
+                    status: 'ready',
+                    isRefetching: true,
+                    refetchError: 'Erreur reseau'
+                })
+
+                await act(async () => resolveRetry(collectionOf(featureWith('data-es:2'))))
+                expect(result.current.state).toEqual({ status: 'ready', isRefetching: false, refetchError: null })
+            }
+        )
+    })
+})
+
+describe('describeBoulodromesState', () => {
+    it("affiche le texte de chargement, sans style d'erreur, pour 'initial-loading'", (): void => {
+        expect(describeBoulodromesState({ status: 'initial-loading' })).toEqual({
+            message: 'Chargement des boulodromes…',
+            isError: false
+        })
+    })
+
+    it("affiche le message d'erreur avec le style d'erreur pour 'initial-error'", (): void => {
+        expect(describeBoulodromesState({ status: 'initial-error', message: 'Erreur reseau' })).toEqual({
+            message: 'Erreur reseau',
+            isError: true
+        })
+    })
+
+    it("n'affiche rien pour 'ready' sans refetchError (rechargement reussi ou silencieux)", (): void => {
+        expect(describeBoulodromesState({ status: 'ready', isRefetching: false, refetchError: null })).toEqual({
+            message: null,
+            isError: false
+        })
+        expect(describeBoulodromesState({ status: 'ready', isRefetching: true, refetchError: null })).toEqual({
+            message: null,
+            isError: false
+        })
+    })
+
+    it("affiche le refetchError en erreur pour 'ready', que le rechargement suivant soit en vol ou non", (): void => {
+        expect(
+            describeBoulodromesState({ status: 'ready', isRefetching: false, refetchError: 'Erreur reseau' })
+        ).toEqual({
+            message: 'Erreur reseau',
+            isError: true
+        })
+        expect(
+            describeBoulodromesState({ status: 'ready', isRefetching: true, refetchError: 'Erreur reseau' })
+        ).toEqual({
+            message: 'Erreur reseau',
+            isError: true
+        })
+    })
+
+    it("un message d'erreur vide reste affiche (isError: true), pas confondu avec 'rien a montrer'", (): void => {
+        // Cas limite : un `Error('')` (message vide) doit toujours declencher le
+        // style d'erreur - `message` vide n'est pas confondu avec `message: null`
+        // ("rien a afficher"), contrairement a une verification de verite
+        // (`if (message)`) qui masquerait silencieusement ce cas.
+        expect(describeBoulodromesState({ status: 'initial-error', message: '' })).toEqual({
+            message: '',
+            isError: true
+        })
     })
 })

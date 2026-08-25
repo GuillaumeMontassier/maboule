@@ -30,3 +30,12 @@ sitting there unused.
 - `BoulodromesMap` must stop unmounting/remounting on every data fetch
   (pan/zoom-triggered or filter-triggered) so Leaflet's zoom/pan state
   survives — required regardless of which option above is used.
+- The "loading flicker" risk named above under Considered Options did
+  materialize, but not as an inherent cost of bbox-scoping itself: the
+  always-mounted map still rendered a full-viewport `isFetching`/`error`
+  block (`.status`, `height: 100vh`, leftover from the pre-bbox conditional
+  render) on every pan/zoom-triggered refetch, not just the first load. Fixed
+  by distinguishing first load (blocking, no data yet) from background
+  refetch (silent on success, small transient indicator on error) instead of
+  a single undifferentiated loading state — see ticket 37. Doesn't warrant
+  falling back to fetch-once-filter-client-side.
