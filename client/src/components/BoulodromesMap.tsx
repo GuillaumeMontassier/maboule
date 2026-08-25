@@ -5,11 +5,14 @@ import { useEffect, useRef, useState } from 'react'
 import { MapContainer, Marker, Polyline, Popup, TileLayer, ZoomControl } from 'react-leaflet'
 import { fetchCafesNearBoulodrome } from '../api/cafes'
 import type { CafeAmenityType, CafesFeatureCollection } from '../api/cafes'
-import type { BoulodromeProperties, BoulodromesFeatureCollection } from '../api/boulodromes'
+import type { Bbox, BoulodromeProperties, BoulodromesFeatureCollection } from '../api/boulodromes'
 import type { RouteFeature } from '../api/route'
+import { BoundsWatcher } from './BoundsWatcher'
 import { BoulodromeSearch } from './BoulodromeSearch'
 import { RoutePanel } from './RoutePanel'
-import { useBoulodromeHistory } from '../hooks/use-boulodrome-history'
+import { useBoulodromeHistory, type BoulodromeHistoryEntry } from '../hooks/use-boulodrome-history'
+import { toBoulodromeHistoryEntry } from '../lib/boulodrome-selection'
+import { geoJsonCoordinatesToLatLng } from '../lib/geo'
 import { computePopupAutoPanPadding } from '../lib/popup-auto-pan'
 import { distinctSiteName } from '../lib/site-name'
 
@@ -55,8 +58,10 @@ const routeStartIcon = L.divIcon({
 // navigateur) : seule la lecture de `window.innerWidth` reste ici, le calcul
 // lui-meme est une fonction pure sans dependance au DOM.
 
-// GeoJSON = [longitude, latitude], Leaflet = [latitude, longitude].
-function toLatLng([longitude, latitude]: number[]): [number, number] {
+// Leaflet attend un tuple [latitude, longitude] (`geoJsonCoordinatesToLatLng`
+// gere la conversion depuis l'ordre GeoJSON [longitude, latitude]).
+function toLatLng(coordinates: number[]): [number, number] {
+    const { latitude, longitude } = geoJsonCoordinatesToLatLng(coordinates)
     return [latitude, longitude]
 }
 
@@ -79,9 +84,14 @@ function accessibleMarkerName(properties: BoulodromeProperties): string {
 
 interface BoulodromesMapProps {
     features: BoulodromesFeatureCollection
+    // Optionnel : les tests de ce composant passent directement `features`
+    // sans exercer le fetch bbox-scope (couvert separement par les tests du
+    // hook `useBoulodromes` et par le describe "chargement par viewport"
+    // ci-dessous), donc sans avoir besoin de fournir ce callback.
+    onBoundsChange?: (bbox: Bbox) => void
 }
 
-export function BoulodromesMap({ features }: BoulodromesMapProps) {
+export function BoulodromesMap({ features, onBoundsChange }: BoulodromesMapProps) {
     // Id du boulodrome dont le popup est actuellement ouvert - pilote le
     // chargement et l'affichage des cafes a proximite (un seul popup Leaflet
     // ouvert a la fois, donc un seul jeu de cafes affiche a la fois).
@@ -122,29 +132,42 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
         }
     }, [selectedBoulodromeId])
 
+    // Rouvre le popup du boulodrome selectionne des que son marqueur devient
+    // disponible - necessaire quand la selection vient d'un resultat de
+    // recherche/historique hors du bbox actuel (ticket 36) : au moment de la
+    // selection, `selectBoulodrome` ci-dessous ne trouve encore aucun
+    // marqueur (le `flyTo` qu'elle declenche n'a pas encore fait arriver ce
+    // boulodrome dans le bbox charge). Cet effet reessaie a chaque fois que
+    // `features` change (nouveau fetch bbox), jusqu'a ce que le marqueur
+    // existe enfin.
+    useEffect(() => {
+        if (!selectedBoulodromeId) return
+        const marker = boulodromeMarkers.current.get(selectedBoulodromeId)
+        if (marker && !marker.isPopupOpen()) marker.openPopup()
+    }, [selectedBoulodromeId, features])
+
     // Selectionne un boulodrome et ouvre son popup - factorise pour etre
     // declenche aussi bien par un clic sur son marqueur que par le choix d'un
-    // resultat de recherche (meme etat, meme popup dans les deux cas). La
-    // recherche interroge l'API sans tenir compte des filtres actifs (nature du
-    // sol, etc.) : un resultat peut donc referencer un boulodrome absent de
-    // `features` et donc sans marqueur sur la carte. Dans ce cas, on ne fait
-    // rien plutot que de selectionner un boulodrome invisible (ce qui
-    // declencherait quand meme le chargement des cafes a proximite, sans
-    // aucune popup ni marqueur pour les rattacher visuellement).
-    function selectBoulodrome(id: string) {
-        const marker = boulodromeMarkers.current.get(id)
-        if (!marker) return
-        if (selectedBoulodromeId && selectedBoulodromeId !== id) {
+    // resultat de recherche ou d'une entree d'historique (meme etat, meme
+    // popup dans les trois cas). Recoit l'entree complete (pas seulement un
+    // id) : la recherche interroge l'API sans tenir compte du bbox actuel, et
+    // l'historique reference typiquement un boulodrome hors du viewport - un
+    // tel resultat peut donc referencer un boulodrome absent de `features`
+    // (bbox-scope) et donc sans marqueur sur la carte (ticket 36). Le
+    // recentrage (`flyTo`) et l'ajout a l'historique utilisent alors les
+    // coordonnees portees par l'entree elle-meme plutot que de dependre d'un
+    // marqueur present ; l'ouverture du popup elle-meme reste conditionnee a
+    // l'existence du marqueur (rien a ouvrir sinon), mais l'effet ci-dessus
+    // reessaie des que le marqueur finit par apparaitre.
+    function selectBoulodrome(entry: BoulodromeHistoryEntry) {
+        const marker = boulodromeMarkers.current.get(entry.id)
+        if (selectedBoulodromeId && selectedBoulodromeId !== entry.id) {
             boulodromeMarkers.current.get(selectedBoulodromeId)?.closePopup()
         }
-        setSelectedBoulodromeId(id)
-        marker.openPopup()
+        setSelectedBoulodromeId(entry.id)
+        marker?.openPopup()
 
-        // Alimente l'historique quel que soit le moyen de selection (marqueur,
-        // recherche, historique lui-meme) puisqu'ils passent tous par cette
-        // fonction.
-        const feature = features.features.find((candidate) => candidate.properties.id === id)
-        if (feature) addToHistory({ id, name: feature.properties.name, siteName: feature.properties.siteName })
+        addToHistory(entry)
 
         // Recentrage anime plutot qu'un saut instantane. Appeler `flyTo` alors
         // qu'une animation precedente est encore en cours ne pose pas de
@@ -154,7 +177,7 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
         if (map) {
             const currentZoom = map.getZoom()
             const targetZoom = currentZoom >= 15 ? currentZoom : 16
-            map.flyTo(marker.getLatLng(), targetZoom)
+            map.flyTo(L.latLng(entry.coordinates.latitude, entry.coordinates.longitude), targetZoom)
         }
     }
 
@@ -178,6 +201,7 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
                 <RoutePanel key={selectedBoulodromeId} boulodromeId={selectedBoulodromeId} onRouteChange={setRoute} />
             )}
             <MapContainer ref={mapRef} center={PARIS_CENTER} zoom={12} zoomControl={false} className="map">
+                {onBoundsChange && <BoundsWatcher onBoundsChange={onBoundsChange} />}
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                     url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -189,6 +213,7 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
                 {features.features.map((feature) => {
                     const id = feature.properties.id
                     const popupSiteName = distinctSiteName(feature.properties.name, feature.properties.siteName)
+                    const historyEntry = toBoulodromeHistoryEntry(feature)
                     return (
                         <Marker
                             key={id}
@@ -208,7 +233,7 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
                                 // `selectBoulodrome` gere elle-meme la fermeture explicite de
                                 // l'ancien popup (necessaire car `autoClose` est desactive
                                 // ci-dessous sur la Popup - cf. commentaire `autoClose`).
-                                click: () => selectBoulodrome(id),
+                                click: () => selectBoulodrome(historyEntry),
                                 // Le mixin popup de Leaflet ouvre le popup au clavier (Entree
                                 // seulement) via son propre gestionnaire interne `keypress` ->
                                 // `_openPopup` (`leaflet-src.js`, mixin Popup), completement
@@ -228,7 +253,7 @@ export function BoulodromesMap({ features }: BoulodromesMapProps) {
                                     const key = event.originalEvent.key
                                     if (key !== 'Enter' && key !== ' ') return
                                     if (key === ' ') event.originalEvent.preventDefault()
-                                    selectBoulodrome(id)
+                                    selectBoulodrome(historyEntry)
                                 },
                                 popupclose: () =>
                                     setSelectedBoulodromeId((current) => (current === id ? null : current))

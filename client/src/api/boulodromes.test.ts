@@ -114,4 +114,30 @@ describe('fetchBoulodromes', () => {
 
         expect(fetchMock).toHaveBeenCalledWith('http://localhost:3000/api/boulodromes')
     })
+
+    it('ajoute le paramètre bbox au format west,south,east,north quand il est fourni', async () => {
+        const fetchMock = vi.fn().mockResolvedValue({
+            ok: true,
+            json: () => Promise.resolve(sampleCollection)
+        })
+        vi.stubGlobal('fetch', fetchMock)
+
+        await fetchBoulodromes({ bbox: { west: 2.2, south: 48.8, east: 2.5, north: 48.9 } })
+
+        const calledUrl = fetchMock.mock.calls[0][0] as string
+        const params = new URL(calledUrl).searchParams
+        expect(params.get('bbox')).toBe('2.2,48.8,2.5,48.9')
+    })
+
+    it("n'ajoute pas le paramètre bbox quand il est absent", async () => {
+        const fetchMock = vi.fn().mockResolvedValue({
+            ok: true,
+            json: () => Promise.resolve(sampleCollection)
+        })
+        vi.stubGlobal('fetch', fetchMock)
+
+        await fetchBoulodromes({})
+
+        expect(fetchMock).toHaveBeenCalledWith('http://localhost:3000/api/boulodromes')
+    })
 })

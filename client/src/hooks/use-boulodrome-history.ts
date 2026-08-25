@@ -1,9 +1,15 @@
 import { useCallback, useState } from 'react'
 
+export interface BoulodromeCoordinates {
+    latitude: number
+    longitude: number
+}
+
 export interface BoulodromeHistoryEntry {
     id: string
     name: string
     siteName: string | null
+    coordinates: BoulodromeCoordinates
 }
 
 const STORAGE_KEY = 'boulodrome-search-history'
@@ -34,6 +40,15 @@ function persistHistory(entries: BoulodromeHistoryEntry[]): void {
     }
 }
 
+function isValidCoordinates(value: unknown): value is BoulodromeCoordinates {
+    return (
+        typeof value === 'object' &&
+        value !== null &&
+        typeof (value as BoulodromeCoordinates).latitude === 'number' &&
+        typeof (value as BoulodromeCoordinates).longitude === 'number'
+    )
+}
+
 function readStoredHistory(): BoulodromeHistoryEntry[] {
     try {
         const raw = window.localStorage.getItem(STORAGE_KEY)
@@ -49,7 +64,12 @@ function readStoredHistory(): BoulodromeHistoryEntry[] {
                     typeof (entry as BoulodromeHistoryEntry).name === 'string' &&
                     ((entry as BoulodromeHistoryEntry).siteName === undefined ||
                         typeof (entry as BoulodromeHistoryEntry).siteName === 'string' ||
-                        (entry as BoulodromeHistoryEntry).siteName === null)
+                        (entry as BoulodromeHistoryEntry).siteName === null) &&
+                    // Contrairement a `siteName`, `coordinates` n'a pas de valeur par
+                    // defaut sensee (ticket 36, necessaire au `flyTo` d'un boulodrome
+                    // hors du viewport actuel) : une entree stockee avant son
+                    // introduction est ecartee plutot que migree.
+                    isValidCoordinates((entry as BoulodromeHistoryEntry).coordinates)
             )
             // Entrees stockees avant l'introduction de `siteName` (ticket 23) n'ont
             // pas ce champ : traitees comme `siteName: null` plutot que rejetees.

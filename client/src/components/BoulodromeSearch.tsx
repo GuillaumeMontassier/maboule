@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState, type FocusEvent, type FormEvent, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { fetchBoulodromes, type BoulodromesFeatureCollection } from '../api/boulodromes'
+import { UI_DEBOUNCE_MS } from '../constants/debounce'
 import type { BoulodromeHistoryEntry } from '../hooks/use-boulodrome-history'
+import { toBoulodromeHistoryEntry } from '../lib/boulodrome-selection'
 import { distinctSiteName } from '../lib/site-name'
 import { FOCUS_RING_CLASS, FOCUS_RING_INSET_CLASS } from './focusStyles'
 import { FLOATING_SURFACE_CLASS, FLOATING_SURFACE_COLOR_CLASS } from './surfaceStyles'
@@ -13,7 +15,12 @@ type SearchState =
     | { status: 'success'; data: BoulodromesFeatureCollection }
 
 interface BoulodromeSearchProps {
-    onSelectBoulodrome: (id: string) => void
+    // Recoit l'entree complete (pas seulement l'id) : `coordinates` permet au
+    // parent de recentrer la carte (`flyTo`) meme quand le resultat selectionne
+    // n'est pas dans le jeu de donnees actuellement charge (bbox-scope, ticket
+    // 36) - un resultat de recherche ou une entree d'historique reference
+    // souvent un boulodrome hors du viewport courant.
+    onSelectBoulodrome: (entry: BoulodromeHistoryEntry) => void
     history?: BoulodromeHistoryEntry[]
     onRemoveFromHistory?: (id: string) => void
 }
@@ -35,7 +42,6 @@ const STATUS_CARD_CLASS = `mt-1.5 ${FLOATING_SURFACE_CLASS}`
 // croix de suppression d'une entree d'historique).
 const ICON_BUTTON_CLASS = 'cursor-pointer text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
 
-const SEARCH_DEBOUNCE_MS = 300
 const MIN_QUERY_LENGTH = 2
 
 interface SelectableListProps<T> {
@@ -132,7 +138,7 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [], onRemoveFro
                     const message = error instanceof Error ? error.message : 'Erreur inconnue'
                     setState({ status: 'error', message })
                 })
-        }, SEARCH_DEBOUNCE_MS)
+        }, UI_DEBOUNCE_MS)
 
         return () => clearTimeout(timeoutId)
     }, [query])
@@ -147,9 +153,9 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [], onRemoveFro
     // Point d'entree unique de toute selection (clic sur un resultat, clic sur
     // une entree d'historique, Entree sur le premier resultat) - ferme les
     // listes (ticket 24) en plus de propager la selection au parent.
-    function selectAndClose(id: string) {
+    function selectAndClose(entry: BoulodromeHistoryEntry) {
         setDismissedAfterSelect(true)
-        onSelectBoulodrome(id)
+        onSelectBoulodrome(entry)
         // Selectionner un item de liste (clic ou activation clavier) focus ce
         // <button>, retire ensuite du DOM par la fermeture de la liste
         // ci-dessus : sans ce recadrage explicite, le focus quitterait le
@@ -165,7 +171,7 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [], onRemoveFro
     function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault()
         if (state.status === 'success' && state.data.features.length > 0) {
-            selectAndClose(state.data.features[0].properties.id)
+            selectAndClose(toBoulodromeHistoryEntry(state.data.features[0]))
         }
     }
 
@@ -237,7 +243,7 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [], onRemoveFro
                 <SelectableList
                     items={history}
                     keyOf={(entry) => entry.id}
-                    onSelect={(entry) => selectAndClose(entry.id)}
+                    onSelect={(entry) => selectAndClose(entry)}
                     renderItem={(entry) =>
                         historySiteName(entry) ? (
                             <>
@@ -291,7 +297,7 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [], onRemoveFro
                 <SelectableList
                     items={state.data.features}
                     keyOf={(feature) => feature.properties.id}
-                    onSelect={(feature) => selectAndClose(feature.properties.id)}
+                    onSelect={(feature) => selectAndClose(toBoulodromeHistoryEntry(feature))}
                     renderItem={(feature) => (
                         <>
                             <strong>{feature.properties.name}</strong>

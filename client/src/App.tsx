@@ -1,33 +1,26 @@
-import { useEffect, useState } from 'react'
-import { fetchBoulodromes, type BoulodromesFeatureCollection } from './api/boulodromes'
+import { useMemo, useState } from 'react'
 import { BoulodromesMap } from './components/BoulodromesMap'
 import { PillFilterGroup } from './components/PillFilterGroup'
 import { AccessFilter } from './components/AccessFilter'
 import { ThemeToggle } from './components/ThemeToggle'
 import { FOCUS_RING_CLASS } from './components/focusStyles'
 import { EQUIPMENT_TYPES, GROUND_TYPES } from './constants/boulodromeFilters'
+import { useBoulodromes } from './hooks/use-boulodromes'
 import './App.css'
-
-type State =
-    | { status: 'loading' }
-    | { status: 'error'; message: string }
-    | { status: 'success'; data: BoulodromesFeatureCollection }
 
 function App() {
     const [groundTypes, setGroundTypes] = useState<string[]>([])
     const [equipmentTypes, setEquipmentTypes] = useState<string[]>([])
     const [freeAccess, setFreeAccess] = useState<boolean | undefined>(undefined)
-    const [state, setState] = useState<State>({ status: 'loading' })
-
-    useEffect(() => {
-        setState({ status: 'loading' })
-        fetchBoulodromes({ groundTypes, equipmentTypes, freeAccess })
-            .then((data) => setState({ status: 'success', data }))
-            .catch((error: unknown) => {
-                const message = error instanceof Error ? error.message : 'Erreur inconnue'
-                setState({ status: 'error', message })
-            })
-    }, [groundTypes, equipmentTypes, freeAccess])
+    // Memoise pour que `useBoulodromes` (dont le filtrage en memoire depend de
+    // cet objet par reference) ne refiltre pas a chaque rendu de `App` - sans
+    // ca, un objet litteral neuf a chaque rendu invaliderait son `useMemo`
+    // meme quand aucun filtre n'a reellement change.
+    const filters = useMemo(
+        () => ({ groundTypes, equipmentTypes, freeAccess }),
+        [groundTypes, equipmentTypes, freeAccess]
+    )
+    const { features, isFetching, error, setBbox } = useBoulodromes(filters)
 
     const hasActiveFilters = groundTypes.length > 0 || equipmentTypes.length > 0 || freeAccess !== undefined
 
@@ -39,16 +32,17 @@ function App() {
 
     return (
         <>
-            {/* Rendu ici plutot que dans BoulodromesMap : independant du chargement
-          des boulodromes (n'a besoin d'aucune donnee de l'API), il doit rester
-          monte et utilisable pendant le chargement/erreur, et ne pas se
-          demonter/remonter a chaque refetch declenche par un changement de
-          filtre (BoulodromesMap est demonte/remonte entre chaque etat
-          loading/success). */}
             <ThemeToggle />
-            {state.status === 'loading' && <p className="status">Chargement des boulodromes…</p>}
-            {state.status === 'error' && <p className="status status-error">{state.message}</p>}
-            {state.status === 'success' && <BoulodromesMap features={state.data} />}
+            {/* `BoulodromesMap` reste monte en permanence, quel que soit l'etat du
+          fetch bbox-scope (ticket 36) - contrairement a l'ancien rendu
+          conditionnel loading/success/error qui la demontait/remontait a
+          chaque changement de filtre, reinitialisant le zoom/pan Leaflet a
+          `PARIS_CENTER`/12 a chaque fois (cause du "dezoom au filtre"
+          signale par l'utilisateur, cf. ADR 0004). Le chargement/l'erreur
+          s'affichent donc en overlay par-dessus, pas a la place de la carte. */}
+            {isFetching && <p className="status">Chargement des boulodromes…</p>}
+            {error && <p className="status status-error">{error}</p>}
+            <BoulodromesMap features={features} onBoundsChange={setBbox} />
             {/* Rendu après BoulodromesMap (donc après la recherche dans l'ordre du
           DOM) plutôt qu'avant : la recherche est l'action principale,
           positionnée en premier visuellement (haut-gauche desktop, au-dessus
