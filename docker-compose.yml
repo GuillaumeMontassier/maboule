@@ -1,5 +1,6 @@
 services:
   db:
+    platform: linux/amd64
     image: postgis/postgis:17-3.5
     restart: unless-stopped
     environment:

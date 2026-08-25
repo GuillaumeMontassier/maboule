@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState, type FocusEvent, type FormEvent, type ReactNode } from 'react'
 import { X } from 'lucide-react'
 import { fetchBoulodromes, type BoulodromesFeatureCollection } from '../api/boulodromes'
+import { UI_DEBOUNCE_MS } from '../constants/debounce'
 import type { BoulodromeHistoryEntry } from '../hooks/use-boulodrome-history'
+import { toBoulodromeHistoryEntry } from '../lib/boulodrome-selection'
 import { distinctSiteName } from '../lib/site-name'
 import { FOCUS_RING_CLASS, FOCUS_RING_INSET_CLASS } from './focusStyles'
+import { FLOATING_SURFACE_CLASS, FLOATING_SURFACE_COLOR_CLASS } from './surfaceStyles'
 
 type SearchState =
     | { status: 'idle' }
@@ -12,7 +15,12 @@ type SearchState =
     | { status: 'success'; data: BoulodromesFeatureCollection }
 
 interface BoulodromeSearchProps {
-    onSelectBoulodrome: (id: string) => void
+    // Recoit l'entree complete (pas seulement l'id) : `coordinates` permet au
+    // parent de recentrer la carte (`flyTo`) meme quand le resultat selectionne
+    // n'est pas dans le jeu de donnees actuellement charge (bbox-scope, ticket
+    // 36) - un resultat de recherche ou une entree d'historique reference
+    // souvent un boulodrome hors du viewport courant.
+    onSelectBoulodrome: (entry: BoulodromeHistoryEntry) => void
     history?: BoulodromeHistoryEntry[]
     onRemoveFromHistory?: (id: string) => void
 }
@@ -25,23 +33,15 @@ function historySiteName(entry: BoulodromeHistoryEntry): string | null {
     return distinctSiteName(entry.name, entry.siteName)
 }
 
-// Fond opaque partage par tous les panneaux flottants du widget (champ +
-// cards loading/error/vide/resultats) - un seul token pour les deux, plutot
-// que de dupliquer bg-white/dark:bg-gray-800 sur le champ separement (ticket
-// 18 : le champ n'avait pas de fond en light mode, laissant transparaitre la
-// carte derriere lui).
-const SURFACE_CLASS = 'bg-white text-gray-900 dark:bg-gray-800 dark:text-gray-100'
-
 // Chrome de card blanche partagee par les etats loading/error/vide/resultats
 // (le padding est omis ici : la liste de resultats n'en a pas, le padding est
 // porte par ses boutons enfants au lieu du <ul>).
-const STATUS_CARD_CLASS = `mt-1.5 rounded-lg border border-gray-300 shadow-sm dark:border-gray-600 ${SURFACE_CLASS}`
+const STATUS_CARD_CLASS = `mt-1.5 ${FLOATING_SURFACE_CLASS}`
 
 // Style partage par les boutons icone du widget (croix d'effacement du champ,
 // croix de suppression d'une entree d'historique).
 const ICON_BUTTON_CLASS = 'cursor-pointer text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
 
-const SEARCH_DEBOUNCE_MS = 300
 const MIN_QUERY_LENGTH = 2
 
 interface SelectableListProps<T> {
@@ -138,7 +138,7 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [], onRemoveFro
                     const message = error instanceof Error ? error.message : 'Erreur inconnue'
                     setState({ status: 'error', message })
                 })
-        }, SEARCH_DEBOUNCE_MS)
+        }, UI_DEBOUNCE_MS)
 
         return () => clearTimeout(timeoutId)
     }, [query])
@@ -153,9 +153,9 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [], onRemoveFro
     // Point d'entree unique de toute selection (clic sur un resultat, clic sur
     // une entree d'historique, Entree sur le premier resultat) - ferme les
     // listes (ticket 24) en plus de propager la selection au parent.
-    function selectAndClose(id: string) {
+    function selectAndClose(entry: BoulodromeHistoryEntry) {
         setDismissedAfterSelect(true)
-        onSelectBoulodrome(id)
+        onSelectBoulodrome(entry)
         // Selectionner un item de liste (clic ou activation clavier) focus ce
         // <button>, retire ensuite du DOM par la fermeture de la liste
         // ci-dessus : sans ce recadrage explicite, le focus quitterait le
@@ -171,7 +171,7 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [], onRemoveFro
     function handleSubmit(event: FormEvent<HTMLFormElement>) {
         event.preventDefault()
         if (state.status === 'success' && state.data.features.length > 0) {
-            selectAndClose(state.data.features[0].properties.id)
+            selectAndClose(toBoulodromeHistoryEntry(state.data.features[0]))
         }
     }
 
@@ -193,19 +193,16 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [], onRemoveFro
         // `md` = 768px par defaut chez Tailwind, meme valeur que le breakpoint du
         // spec : pas de config de breakpoint dediee necessaire.
         // z-[1100], plus haut que le z-[1000] des 3 autres panneaux flottants
-        // (filtres, ThemeToggle, RoutePanel) : le bloc filtres (top-14, App.tsx)
-        // chevauche geometriquement la liste ouverte (resultats ou historique) de
-        // ce widget - a toutes les tailles d'ecran depuis que les filtres sont
-        // passes en pleine largeur sous la recherche (ticket 34), auparavant
-        // seulement en mobile (le desktop les plaçait a cote de la recherche,
-        // sans chevauchement vertical). Un z-index a egalite se departage par
+        // (filtres, ThemeToggle, RoutePanel) : en mobile le bloc filtres (top-14,
+        // App.tsx) chevauche geometriquement la liste ouverte (resultats ou
+        // historique) de ce widget, et un z-index a egalite se departage par
         // ordre de peinture (DOM) - qui favorisait jusqu'ici les filtres, rendus
         // apres ce widget dans App.tsx (ticket 25). Bump volontairement cible sur
         // ce seul widget plutot qu'une echelle de z-index partagee : c'est la
         // premiere fois que deux de ces panneaux ont besoin d'un ordre explicite
         // entre eux.
         <div
-            className="fixed top-3 left-1/2 z-[1100] w-[280px] -translate-x-1/2 text-sm md:left-3 md:translate-x-0"
+            className="fixed top-3 left-1/2 z-[1100] w-[min(94vw,370px)] -translate-x-1/2 text-sm md:left-3 md:w-[280px] md:translate-x-0"
             onFocus={() => {
                 setIsFocused(true)
                 if (suppressReopenOnFocusRef.current) {
@@ -229,7 +226,7 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [], onRemoveFro
                     placeholder="Rechercher un boulodrome…"
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
-                    className={`w-full rounded-md border border-gray-300 px-2 py-1.5 dark:border-gray-600 dark:placeholder-gray-400 ${SURFACE_CLASS} ${hasQuery ? 'pr-7' : ''} ${FOCUS_RING_CLASS}`}
+                    className={`w-full rounded-md border border-gray-300 px-2 py-1.5 dark:border-gray-600 dark:placeholder-gray-400 ${FLOATING_SURFACE_COLOR_CLASS} ${hasQuery ? 'pr-7' : ''} ${FOCUS_RING_CLASS}`}
                 />
                 {hasQuery && (
                     <button
@@ -246,7 +243,7 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [], onRemoveFro
                 <SelectableList
                     items={history}
                     keyOf={(entry) => entry.id}
-                    onSelect={(entry) => selectAndClose(entry.id)}
+                    onSelect={(entry) => selectAndClose(entry)}
                     renderItem={(entry) =>
                         historySiteName(entry) ? (
                             <>
@@ -300,7 +297,7 @@ export function BoulodromeSearch({ onSelectBoulodrome, history = [], onRemoveFro
                 <SelectableList
                     items={state.data.features}
                     keyOf={(feature) => feature.properties.id}
-                    onSelect={(feature) => selectAndClose(feature.properties.id)}
+                    onSelect={(feature) => selectAndClose(toBoulodromeHistoryEntry(feature))}
                     renderItem={(feature) => (
                         <>
                             <strong>{feature.properties.name}</strong>

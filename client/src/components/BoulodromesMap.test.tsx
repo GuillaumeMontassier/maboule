@@ -400,15 +400,20 @@ describe('BoulodromesMap - recherche par mot-clé', () => {
         expect(await screen.findByText('Aucun boulodrome trouvé.')).toBeTruthy()
     })
 
-    it("ignore la sélection d'un résultat dont le boulodrome n'est pas affiché sur la carte (filtré)", async () => {
-        // La recherche interroge l'API sans tenir compte des filtres actifs :
-        // elle peut renvoyer un boulodrome absent des `features` passées à
-        // BoulodromesMap (donc sans marqueur sur la carte).
+    it("sélectionne quand même un résultat de recherche absent de la carte (hors bbox actuel, ticket 36)", async () => {
+        // La recherche interroge l'API sans tenir compte du bbox actuellement
+        // charge : elle peut renvoyer un boulodrome absent des `features`
+        // passées à BoulodromesMap (donc sans marqueur sur la carte). La
+        // sélection doit tout de même aboutir (cafés chargés, recentrage) en
+        // s'appuyant sur les coordonnées portées par le résultat lui-même,
+        // plutôt que d'échouer silencieusement comme avant ce ticket.
         const onlyFirstBoulodrome: BoulodromesFeatureCollection = {
             type: 'FeatureCollection',
             features: [sampleBoulodromes.features[0]]
         }
         vi.mocked(fetchBoulodromes).mockResolvedValue(sampleBoulodromes)
+        vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes)
+        const flyToSpy = vi.spyOn(L.Map.prototype, 'flyTo')
 
         render(<BoulodromesMap features={onlyFirstBoulodrome} />)
 
@@ -419,9 +424,43 @@ describe('BoulodromesMap - recherche par mot-clé', () => {
         const result = await screen.findByRole('button', { name: /AUTRE TERRAIN/ })
         fireEvent.click(result)
 
-        // Pas de marqueur pour "data-es:2" -> pas de selection, pas de cafes
-        // charges pour un boulodrome invisible sur la carte.
-        expect(fetchCafesNearBoulodrome).not.toHaveBeenCalled()
+        await waitFor(() => expect(fetchCafesNearBoulodrome).toHaveBeenCalledWith('data-es:2'))
+        await waitFor(() => expect(flyToSpy).toHaveBeenCalledTimes(1))
+        const [latlng] = flyToSpy.mock.calls[0]
+        expect((latlng as L.LatLng).lat).toBeCloseTo(48.86)
+        expect((latlng as L.LatLng).lng).toBeCloseTo(2.36)
+
+        flyToSpy.mockRestore()
+    })
+
+    it("ouvre le popup d'un résultat de recherche hors bbox dès que son marqueur finit par se charger", async () => {
+        // Au moment de la sélection, aucun marqueur n'existe encore pour ce
+        // boulodrome (hors du bbox initialement charge) : le popup ne peut pas
+        // s'ouvrir tout de suite. Une fois qu'un fetch bbox ulterieur (simule
+        // ici par un nouveau `features` passe au composant) fait apparaitre son
+        // marqueur, le popup doit s'ouvrir de lui-meme plutot que de rester
+        // indefiniment ferme (ticket 36).
+        const onlyFirstBoulodrome: BoulodromesFeatureCollection = {
+            type: 'FeatureCollection',
+            features: [sampleBoulodromes.features[0]]
+        }
+        vi.mocked(fetchBoulodromes).mockResolvedValue(sampleBoulodromes)
+        vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes)
+
+        const { rerender } = render(<BoulodromesMap features={onlyFirstBoulodrome} />)
+
+        fireEvent.change(screen.getByLabelText('Rechercher un boulodrome'), {
+            target: { value: 'autre' }
+        })
+        const result = await screen.findByRole('button', { name: /AUTRE TERRAIN/ })
+        fireEvent.click(result)
+
+        await waitFor(() => expect(fetchCafesNearBoulodrome).toHaveBeenCalledWith('data-es:2'))
+        expect(screen.queryByText(/75002/)).toBeNull()
+
+        rerender(<BoulodromesMap features={sampleBoulodromes} />)
+
+        expect(await screen.findByText(/75002/)).toBeTruthy()
     })
 })
 
@@ -794,5 +833,58 @@ describe('BoulodromesMap - recentrage automatique', () => {
         expect(await screen.findByText(/75002/)).toBeTruthy()
 
         flyToSpy.mockRestore()
+    })
+})
+
+describe('BoulodromesMap - chargement par viewport (bbox, ticket 36)', () => {
+    it('signale le bbox de la vue initiale des le montage (Leaflet ne déclenche pas moveend pour elle)', () => {
+        const initialBounds = L.latLngBounds([48.8, 2.2], [48.9, 2.5])
+        const getBoundsSpy = vi.spyOn(L.Map.prototype, 'getBounds').mockReturnValue(initialBounds)
+        const onBoundsChange = vi.fn()
+
+        render(<BoulodromesMap features={sampleBoulodromes} onBoundsChange={onBoundsChange} />)
+
+        expect(onBoundsChange).toHaveBeenCalledExactlyOnceWith({ west: 2.2, south: 48.8, east: 2.5, north: 48.9 })
+
+        getBoundsSpy.mockRestore()
+    })
+
+    it('ne plante pas quand onBoundsChange n’est pas fourni (BoundsWatcher non monté)', () => {
+        // Verifie l'absence d'erreur (BoundsWatcher non monte du tout) plutot
+        // qu'un comportement observable specifique.
+        expect(() => render(<BoulodromesMap features={sampleBoulodromes} />)).not.toThrow()
+    })
+
+    it('debounce les rapports successifs de moveend (UI_DEBOUNCE_MS, partagé avec BoulodromeSearch.tsx)', () => {
+        vi.useFakeTimers()
+        const boundsAtMount = L.latLngBounds([48.8, 2.2], [48.9, 2.5])
+        const boundsAfterMove = L.latLngBounds([48.81, 2.21], [48.91, 2.51])
+        const getBoundsSpy = vi.spyOn(L.Map.prototype, 'getBounds').mockReturnValue(boundsAtMount)
+        const onSpy = vi.spyOn(L.Map.prototype, 'on')
+        const onBoundsChange = vi.fn()
+
+        render(<BoulodromesMap features={sampleBoulodromes} onBoundsChange={onBoundsChange} />)
+        expect(onBoundsChange).toHaveBeenCalledTimes(1)
+
+        const onCalls = onSpy.mock.calls as unknown as [string, () => void][]
+        const moveendHandler = onCalls.find(([type]) => type === 'moveend')?.[1]
+        if (!moveendHandler) throw new Error('gestionnaire moveend introuvable')
+
+        getBoundsSpy.mockReturnValue(boundsAfterMove)
+        // Deux `moveend` rapproches (deplacement continu) : un seul rapport au
+        // parent apres le silence, pas un par evenement.
+        moveendHandler()
+        moveendHandler()
+
+        vi.advanceTimersByTime(299)
+        expect(onBoundsChange).toHaveBeenCalledTimes(1)
+
+        vi.advanceTimersByTime(1)
+        expect(onBoundsChange).toHaveBeenCalledTimes(2)
+        expect(onBoundsChange).toHaveBeenLastCalledWith({ west: 2.21, south: 48.81, east: 2.51, north: 48.91 })
+
+        vi.useRealTimers()
+        getBoundsSpy.mockRestore()
+        onSpy.mockRestore()
     })
 })
