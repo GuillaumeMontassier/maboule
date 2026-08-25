@@ -1,5 +1,3 @@
-export const PILL_BASE_CLASS = 'rounded-full px-3 py-1 text-xs font-medium whitespace-nowrap transition-colors'
-
 // Segment individuel d'une pilule-groupe (ticket 31) : chaque option est une
 // pilule arrondie a part entiere (`rounded-full`), separee des autres par le
 // `gap-1` du conteneur, plutot qu'une seule barre continue decoupee en
