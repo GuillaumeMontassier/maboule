@@ -122,12 +122,23 @@ describe('App', () => {
         }
     )
 
-    it("affiche un message d'erreur si le chargement échoue", async () => {
+    it("affiche un message d'erreur si le chargement échoue", async (): Promise<void> => {
         vi.mocked(fetchBoulodromes).mockRejectedValue(new Error('Erreur lors du chargement des boulodromes (500)'))
 
         render(<App />)
 
-        expect(await screen.findByText(/erreur lors du chargement/i)).toBeTruthy()
+        const message = await screen.findByText(/erreur lors du chargement/i)
+        expect(message).toBeTruthy()
+        // Style d'erreur (rouge) plutôt que le style neutre du chargement -
+        // vérifie le branchement `statusIsError` en plus du seul contenu.
+        expect(message.className).toContain('text-red-700')
+    })
+
+    it('retire le message de chargement une fois les boulodromes reçus (ticket 37)', async (): Promise<void> => {
+        vi.mocked(fetchBoulodromes).mockResolvedValue(sampleCollection)
+
+        render(<App />)
+        await waitFor(() => expect(screen.queryByText(/chargement/i)).toBeNull())
     })
 
     it(

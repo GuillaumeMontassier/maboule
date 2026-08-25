@@ -13,3 +13,11 @@ export const FLOATING_SURFACE_COLOR_CLASS = 'bg-white text-gray-900 dark:bg-gray
 // legitimement selon l'usage et reste donc un modificateur par composant,
 // pas integre a ce token.
 export const FLOATING_SURFACE_CLASS = `rounded-lg border border-gray-300 shadow-sm dark:border-gray-600 ${FLOATING_SURFACE_COLOR_CLASS}`
+
+// Couleur de texte "erreur" sur une surface flottante (App.tsx, ticket 37) -
+// meme couleur que la carte d'erreur de BoulodromeSearch (`STATUS_CARD_CLASS`,
+// composant-local car sa carte porte aussi un positionnement `mt-1.5` propre
+// a son propre usage, non reutilisable tel quel) et que RoutePanel (pas migre
+// ici, hors scope de ce ticket) - extrait pour qu'un futur troisieme usage
+// n'ait pas a redupliquer ce litteral une fois de plus.
+export const STATUS_ERROR_TEXT_CLASS = 'text-red-700 dark:text-red-400'

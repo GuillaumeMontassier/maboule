@@ -16,27 +16,6 @@ html.dark .leaflet-container {
   background-color: var(--color-gray-900);
 }
 
-.status {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-  margin: 0;
-  font-family: system-ui, sans-serif;
-}
-
-html.dark .status {
-  color: var(--color-gray-100);
-}
-
-.status-error {
-  color: #b91c1c;
-}
-
-html.dark .status-error {
-  color: var(--color-red-400);
-}
-
 .cafe-marker,
 .route-start-marker {
   display: flex;
