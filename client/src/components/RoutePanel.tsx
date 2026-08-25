@@ -3,6 +3,7 @@ import { Search } from 'lucide-react'
 import { fetchRoute, type RouteFeature } from '../api/route'
 import { fetchGeocodeCandidates, type GeocodeCandidate } from '../api/geocode'
 import { FOCUS_RING_CLASS, FOCUS_RING_INSET_CLASS } from './focusStyles'
+import { FLOATING_SURFACE_CLASS } from './surfaceStyles'
 
 type RouteState =
     | { status: 'idle' }
@@ -166,7 +167,9 @@ export function RoutePanel({ boulodromeId, onRouteChange }: RoutePanelProps) {
         // chevaucher les controles de zoom (bas-droite) sur les ecrans les plus
         // etroits (< ~376px de large, ou 280px + les deux marges de 12px
         // depassent l'espace disponible avant ces controles).
-        <div className="fixed bottom-3 left-3 z-[1000] w-[280px] max-w-[calc(100vw-96px)] rounded-lg border border-gray-300 bg-white px-3 py-2.5 font-sans text-sm text-gray-900 shadow-sm dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100">
+        <div
+            className={`fixed bottom-3 left-3 z-[1000] w-[280px] max-w-[calc(100vw-96px)] px-3 py-2.5 font-sans text-sm ${FLOATING_SURFACE_CLASS}`}
+        >
             <h2 className="mb-2 text-base">Itinéraire</h2>
             <button
                 type="button"

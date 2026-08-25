@@ -11,10 +11,12 @@ vi.mock('../api/boulodromes', async (importOriginal) => ({
     fetchBoulodromes: vi.fn()
 }))
 
+const SAMPLE_COORDINATES = { latitude: 48.8566, longitude: 2.3522 }
+
 function featureFor(id: string, name: string): BoulodromesFeatureCollection['features'][number] {
     return {
         type: 'Feature',
-        geometry: { type: 'Point', coordinates: [2.3522, 48.8566] },
+        geometry: { type: 'Point', coordinates: [SAMPLE_COORDINATES.longitude, SAMPLE_COORDINATES.latitude] },
         properties: {
             id,
             name,
@@ -30,6 +32,10 @@ function featureFor(id: string, name: string): BoulodromesFeatureCollection['fea
             lastSyncedAt: '2026-07-24T10:00:00.000Z'
         }
     }
+}
+
+function historyEntryFor(id: string, name: string, siteName: string | null = null): BoulodromeHistoryEntry {
+    return { id, name, siteName, coordinates: SAMPLE_COORDINATES }
 }
 
 function collectionWithBoulodrome(id: string, name: string): BoulodromesFeatureCollection {
@@ -134,10 +140,7 @@ describe('BoulodromeSearch', () => {
     })
 
     it("affiche l'historique au focus du champ vide", () => {
-        const history = [
-            { id: 'data-es:2', name: 'VINCENNES', siteName: null },
-            { id: 'data-es:1', name: 'ARSENAL', siteName: null }
-        ]
+        const history = [historyEntryFor('data-es:2', 'VINCENNES'), historyEntryFor('data-es:1', 'ARSENAL')]
 
         render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} history={history} />)
         const input = screen.getByLabelText('Rechercher un boulodrome')
@@ -151,7 +154,7 @@ describe('BoulodromeSearch', () => {
     })
 
     it("affiche siteName en evidence au-dessus de name quand l'entree en a un (ticket 23)", () => {
-        const history = [{ id: 'data-es:1', name: 'TERRAIN 1', siteName: 'SQUARE DE TEST' }]
+        const history = [historyEntryFor('data-es:1', 'TERRAIN 1', 'SQUARE DE TEST')]
 
         render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} history={history} />)
         const input = screen.getByLabelText('Rechercher un boulodrome')
@@ -163,7 +166,7 @@ describe('BoulodromeSearch', () => {
     })
 
     it("n'affiche que name quand siteName est null, sans ligne vide ni doublon (ticket 23)", () => {
-        const history = [{ id: 'data-es:1', name: 'ARSENAL', siteName: null }]
+        const history = [historyEntryFor('data-es:1', 'ARSENAL')]
 
         render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} history={history} />)
         const input = screen.getByLabelText('Rechercher un boulodrome')
@@ -175,7 +178,7 @@ describe('BoulodromeSearch', () => {
     })
 
     it("n'affiche name qu'une seule fois quand siteName est egal a name (ticket 23)", () => {
-        const history = [{ id: 'data-es:1', name: 'ARSENAL', siteName: 'ARSENAL' }]
+        const history = [historyEntryFor('data-es:1', 'ARSENAL', 'ARSENAL')]
 
         render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} history={history} />)
         const input = screen.getByLabelText('Rechercher un boulodrome')
@@ -188,8 +191,8 @@ describe('BoulodromeSearch', () => {
 
     it('distingue par aria-label la croix de suppression de deux entrees qui partagent name mais pas siteName (ticket 23)', () => {
         const history = [
-            { id: 'data-es:1', name: 'TERRAIN DE PETANQUE', siteName: 'TEP LOUIS BRAILLE' },
-            { id: 'data-es:2', name: 'TERRAIN DE PETANQUE', siteName: 'TEP MENILMONTANT' }
+            historyEntryFor('data-es:1', 'TERRAIN DE PETANQUE', 'TEP LOUIS BRAILLE'),
+            historyEntryFor('data-es:2', 'TERRAIN DE PETANQUE', 'TEP MENILMONTANT')
         ]
 
         render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} history={history} onRemoveFromHistory={vi.fn()} />)
@@ -206,7 +209,7 @@ describe('BoulodromeSearch', () => {
     })
 
     it("n'affiche pas l'historique une fois qu'une saisie est en cours", () => {
-        const history = [{ id: 'data-es:1', name: 'ARSENAL', siteName: null }]
+        const history = [historyEntryFor('data-es:1', 'ARSENAL')]
 
         render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} history={history} />)
         const input = screen.getByLabelText('Rechercher un boulodrome')
@@ -220,7 +223,7 @@ describe('BoulodromeSearch', () => {
     })
 
     it("masque l'historique si le champ vide perd le focus", () => {
-        const history = [{ id: 'data-es:1', name: 'ARSENAL', siteName: null }]
+        const history = [historyEntryFor('data-es:1', 'ARSENAL')]
 
         render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} history={history} />)
         const input = screen.getByLabelText('Rechercher un boulodrome')
@@ -234,7 +237,7 @@ describe('BoulodromeSearch', () => {
     })
 
     it("cliquer une entrée de l'historique sélectionne directement ce boulodrome", () => {
-        const history = [{ id: 'data-es:1', name: 'ARSENAL', siteName: null }]
+        const history = [historyEntryFor('data-es:1', 'ARSENAL')]
         const onSelectBoulodrome = vi.fn()
 
         render(<BoulodromeSearch onSelectBoulodrome={onSelectBoulodrome} history={history} />)
@@ -243,14 +246,11 @@ describe('BoulodromeSearch', () => {
         fireEvent.focus(input)
         fireEvent.click(screen.getByRole('button', { name: 'ARSENAL' }))
 
-        expect(onSelectBoulodrome).toHaveBeenCalledExactlyOnceWith('data-es:1')
+        expect(onSelectBoulodrome).toHaveBeenCalledExactlyOnceWith(history[0])
     })
 
     it("affiche une croix de suppression nommant l'entree sur chaque ligne de l'historique", () => {
-        const history = [
-            { id: 'data-es:1', name: 'ARSENAL', siteName: null },
-            { id: 'data-es:2', name: 'VINCENNES', siteName: null }
-        ]
+        const history = [historyEntryFor('data-es:1', 'ARSENAL'), historyEntryFor('data-es:2', 'VINCENNES')]
 
         render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} history={history} onRemoveFromHistory={vi.fn()} />)
         const input = screen.getByLabelText('Rechercher un boulodrome')
@@ -265,7 +265,7 @@ describe('BoulodromeSearch', () => {
     })
 
     it("n'affiche pas de croix de suppression si aucun gestionnaire n'est fourni", () => {
-        const history = [{ id: 'data-es:1', name: 'ARSENAL', siteName: null }]
+        const history = [historyEntryFor('data-es:1', 'ARSENAL')]
 
         render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} history={history} />)
         const input = screen.getByLabelText('Rechercher un boulodrome')
@@ -276,7 +276,7 @@ describe('BoulodromeSearch', () => {
     })
 
     it("cliquer la croix retire l'entree de l'historique sans selectionner le boulodrome", () => {
-        const history = [{ id: 'data-es:1', name: 'ARSENAL', siteName: null }]
+        const history = [historyEntryFor('data-es:1', 'ARSENAL')]
         const onSelectBoulodrome = vi.fn()
         const onRemoveFromHistory = vi.fn()
 
@@ -297,10 +297,7 @@ describe('BoulodromeSearch', () => {
     })
 
     it("garde le panneau d'historique ouvert (ne perd pas le focus du widget) apres suppression d'une entree qui avait le focus", () => {
-        const history = [
-            { id: 'data-es:1', name: 'ARSENAL', siteName: null },
-            { id: 'data-es:2', name: 'VINCENNES', siteName: null }
-        ]
+        const history = [historyEntryFor('data-es:1', 'ARSENAL'), historyEntryFor('data-es:2', 'VINCENNES')]
 
         render(<ControlledHistorySearch initialHistory={history} />)
         const input = screen.getByLabelText('Rechercher un boulodrome')
@@ -319,7 +316,7 @@ describe('BoulodromeSearch', () => {
     })
 
     it("cliquer le reste de la ligne d'historique selectionne toujours le boulodrome", () => {
-        const history = [{ id: 'data-es:1', name: 'ARSENAL', siteName: null }]
+        const history = [historyEntryFor('data-es:1', 'ARSENAL')]
         const onSelectBoulodrome = vi.fn()
 
         render(
@@ -330,7 +327,7 @@ describe('BoulodromeSearch', () => {
         fireEvent.focus(input)
         fireEvent.click(screen.getByRole('button', { name: 'ARSENAL' }))
 
-        expect(onSelectBoulodrome).toHaveBeenCalledExactlyOnceWith('data-es:1')
+        expect(onSelectBoulodrome).toHaveBeenCalledExactlyOnceWith(history[0])
     })
 
     it("n'affiche pas la croix d'effacement quand le champ est vide", () => {
@@ -375,7 +372,7 @@ describe('BoulodromeSearch', () => {
     })
 
     it("cliquer une entrée de l'historique referme la liste d'historique et rend le focus au champ (ticket 24)", () => {
-        const history = [{ id: 'data-es:1', name: 'ARSENAL', siteName: null }]
+        const history = [historyEntryFor('data-es:1', 'ARSENAL')]
 
         render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} history={history} />)
         const input = screen.getByLabelText('Rechercher un boulodrome')
@@ -405,13 +402,13 @@ describe('BoulodromeSearch', () => {
         // texte du nom du boulodrome plutot que le nom accessible complet.
         fireEvent.click(screen.getByText('ARSENAL'))
 
-        expect(onSelectBoulodrome).toHaveBeenCalledExactlyOnceWith('data-es:1')
+        expect(onSelectBoulodrome).toHaveBeenCalledExactlyOnceWith(historyEntryFor('data-es:1', 'ARSENAL'))
         expect(screen.queryByText('ARSENAL')).toBeNull()
         expect(document.activeElement).toBe(input)
     })
 
     it("un vrai refocus ulterieur (apres une selection) reaffiche normalement l'historique (ticket 24)", () => {
-        const history = [{ id: 'data-es:1', name: 'ARSENAL', siteName: null }]
+        const history = [historyEntryFor('data-es:1', 'ARSENAL')]
 
         render(<BoulodromeSearch onSelectBoulodrome={vi.fn()} history={history} />)
         const input = screen.getByLabelText('Rechercher un boulodrome')
@@ -446,6 +443,6 @@ describe('BoulodromeSearch', () => {
 
         fireEvent.submit(form)
 
-        expect(onSelectBoulodrome).toHaveBeenCalledExactlyOnceWith('data-es:1')
+        expect(onSelectBoulodrome).toHaveBeenCalledExactlyOnceWith(historyEntryFor('data-es:1', 'ARSENAL'))
     })
 })

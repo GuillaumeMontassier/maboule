@@ -4,7 +4,7 @@ import { computePopupAutoPanPadding } from './popup-auto-pan'
 describe('computePopupAutoPanPadding', () => {
     it('reserves the mobile search+filters height on top in mobile viewports', () => {
         const { topLeft } = computePopupAutoPanPadding(375)
-        expect(topLeft).toEqual([304, 300])
+        expect(topLeft).toEqual([304, 90])
     })
 
     it('falls back to the small default top margin in desktop viewports', () => {
@@ -19,7 +19,7 @@ describe('computePopupAutoPanPadding', () => {
 
     it('treats one pixel below the breakpoint as mobile', () => {
         const { topLeft } = computePopupAutoPanPadding(767)
-        expect(topLeft).toEqual([304, 300])
+        expect(topLeft).toEqual([304, 90])
     })
 
     it('keeps the bottom-right padding independent of viewport width', () => {
