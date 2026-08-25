@@ -148,13 +148,13 @@ describe('App', () => {
         expect(search.compareDocumentPosition(firstFilterPill) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 
-    it('recharge les boulodromes avec le filtre appliqué quand la pilule "Accès libre" est activée', async () => {
+    it('recharge les boulodromes avec le filtre appliqué quand le segment "Libre" est activé', async () => {
         vi.mocked(fetchBoulodromes).mockResolvedValue(sampleCollection)
 
         render(<App />)
         await waitFor(() => expect(fetchBoulodromes).toHaveBeenCalledTimes(1))
 
-        fireEvent.click(screen.getByRole('button', { name: 'Accès libre' }))
+        fireEvent.click(screen.getByRole('button', { name: 'Accès : Libre' }))
 
         await waitFor(() =>
             expect(fetchBoulodromes).toHaveBeenCalledWith({
@@ -165,14 +165,14 @@ describe('App', () => {
         )
     })
 
-    it('retire le filtre "Accès libre" en désactivant à nouveau la pilule', async () => {
+    it('retire le filtre "Accès" en désactivant à nouveau le segment "Libre"', async () => {
         vi.mocked(fetchBoulodromes).mockResolvedValue(sampleCollection)
 
         render(<App />)
         await waitFor(() => expect(fetchBoulodromes).toHaveBeenCalledTimes(1))
 
-        const pill = screen.getByRole('button', { name: 'Accès libre' })
-        fireEvent.click(pill)
+        const segment = screen.getByRole('button', { name: 'Accès : Libre' })
+        fireEvent.click(segment)
         await waitFor(() =>
             expect(fetchBoulodromes).toHaveBeenCalledWith({
                 groundTypes: [],
@@ -181,13 +181,39 @@ describe('App', () => {
             })
         )
 
-        fireEvent.click(pill)
+        fireEvent.click(segment)
 
         await waitFor(() =>
             expect(fetchBoulodromes).toHaveBeenCalledWith({
                 groundTypes: [],
                 equipmentTypes: [],
                 freeAccess: undefined
+            })
+        )
+    })
+
+    it('bascule vers "Restreint" quand le segment est activé alors que "Libre" était actif', async () => {
+        vi.mocked(fetchBoulodromes).mockResolvedValue(sampleCollection)
+
+        render(<App />)
+        await waitFor(() => expect(fetchBoulodromes).toHaveBeenCalledTimes(1))
+
+        fireEvent.click(screen.getByRole('button', { name: 'Accès : Libre' }))
+        await waitFor(() =>
+            expect(fetchBoulodromes).toHaveBeenCalledWith({
+                groundTypes: [],
+                equipmentTypes: [],
+                freeAccess: true
+            })
+        )
+
+        fireEvent.click(screen.getByRole('button', { name: 'Accès : Restreint' }))
+
+        await waitFor(() =>
+            expect(fetchBoulodromes).toHaveBeenCalledWith({
+                groundTypes: [],
+                equipmentTypes: [],
+                freeAccess: false
             })
         )
     })
