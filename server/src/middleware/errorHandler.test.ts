@@ -1,5 +1,6 @@
 import express from 'express'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { logger } from '../logger'
 import { AddressNotFoundError, OpenRouteServiceUnavailableError, RouteNotFoundError } from '../routing/openRouteServiceClient'
 import { errorHandler } from './errorHandler'
 
@@ -55,7 +56,7 @@ describe('errorHandler', (): void => {
     })
 
     it('retombe sur 500 avec un message générique pour une erreur inconnue', (): void => {
-        vi.spyOn(console, 'error').mockImplementation((): void => {})
+        vi.spyOn(logger, 'error').mockImplementation((): void => {})
         const res = buildMockResponse()
         const error = new Error('boom, détail interne')
 
@@ -66,13 +67,13 @@ describe('errorHandler', (): void => {
     })
 
     it("journalise le détail de l'erreur inconnue côté serveur sans l'exposer au client", (): void => {
-        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation((): void => {})
+        const loggerErrorSpy = vi.spyOn(logger, 'error').mockImplementation((): void => {})
         const res = buildMockResponse()
         const error = new Error('boom, détail interne')
 
         errorHandler(error, {} as express.Request, res as unknown as express.Response, NOOP_NEXT)
 
-        expect(consoleErrorSpy).toHaveBeenCalledWith(error)
+        expect(loggerErrorSpy).toHaveBeenCalledWith('Erreur inattendue côté serveur', { error })
         expect(res.json).not.toHaveBeenCalledWith(expect.objectContaining({ error: expect.stringContaining('détail interne') }))
     })
 })

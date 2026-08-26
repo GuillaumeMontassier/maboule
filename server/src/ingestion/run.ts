@@ -1,18 +1,19 @@
 import { db, pool } from '../db/client'
 import { upsertBoulodromes } from '../db/boulodromesRepository'
+import { logger } from '../logger'
 import { fetchParisBoulodromes } from './dataEs'
 
 async function main() {
     const boulodromes = await fetchParisBoulodromes()
-    console.log(`${boulodromes.length} boulodromes récupérés depuis Data ES`)
+    logger.info('Boulodromes récupérés depuis Data ES', { count: boulodromes.length })
 
     await upsertBoulodromes(db, boulodromes)
-    console.log('Import terminé')
+    logger.info('Import terminé')
 
     await pool.end()
 }
 
 main().catch((error) => {
-    console.error(error)
+    logger.error("Échec de l'import des boulodromes", { error })
     process.exitCode = 1
 })

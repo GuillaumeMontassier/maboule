@@ -1,4 +1,5 @@
 import express from 'express'
+import { logger } from '../logger'
 import {
     AddressNotFoundError,
     OpenRouteServiceUnavailableError,
@@ -38,6 +39,6 @@ export function errorHandler(
         return
     }
 
-    console.error(error)
+    logger.error('Erreur inattendue côté serveur', { error })
     res.status(500).json({ error: 'Erreur inattendue côté serveur' })
 }

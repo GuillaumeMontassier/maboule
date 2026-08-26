@@ -1,18 +1,19 @@
 import { db, pool } from '../db/client'
 import { upsertCafes } from '../db/cafesRepository'
+import { logger } from '../logger'
 import { fetchParisCafes } from './osmCafes'
 
 async function main() {
     const cafes = await fetchParisCafes()
-    console.log(`${cafes.length} cafés/bars récupérés depuis OpenStreetMap`)
+    logger.info('Cafés/bars récupérés depuis OpenStreetMap', { count: cafes.length })
 
     await upsertCafes(db, cafes)
-    console.log('Import terminé')
+    logger.info('Import terminé')
 
     await pool.end()
 }
 
 main().catch((error) => {
-    console.error(error)
+    logger.error("Échec de l'import des cafés", { error })
     process.exitCode = 1
 })
