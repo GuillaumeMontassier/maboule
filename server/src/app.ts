@@ -1,6 +1,7 @@
 import cors from 'cors'
 import express from 'express'
 import swaggerUi from 'swagger-ui-express'
+import { errorHandler } from './middleware/errorHandler'
 import { generateOpenApiDocument } from './openapi/document'
 import { boulodromesRouter } from './routes/boulodromes.routes'
 import { geocodeRouter } from './routes/geocode.routes'
@@ -29,3 +30,8 @@ app.use('/docs', swaggerUi.serve, swaggerUi.setup(openApiDocument))
 
 app.use(boulodromesRouter)
 app.use(geocodeRouter)
+
+// Monte en dernier : Express n'appelle un middleware a 4 arguments que pour
+// traiter une erreur, jamais pour une requete normale - doit donc suivre
+// tous les routers pour recevoir les rejets de promesse qu'ils propagent.
+app.use(errorHandler)
