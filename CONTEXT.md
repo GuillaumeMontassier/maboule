@@ -10,6 +10,14 @@ et d'OpenStreetMap.
 Un terrain de pétanque à Paris, avec son type d'équipement, la nature du sol
 et son accès libre/payant — source : open data Ville de Paris / Data ES.
 
+**Fiche boulodrome**:
+Le panneau déporté (hors de la carte) affichant les infos détaillées du
+boulodrome sélectionné — desktop : colonne gauche sous la recherche et les
+filtres ; mobile : bas d'écran, au-dessus du panneau Itinéraire. Remplace
+l'ancienne popup Leaflet ouverte au-dessus du pin, qui masquait les cafés à
+proximité.
+_Avoid_: popup, card, panneau détail
+
 **Café**:
 Un café, bar ou pub à proximité d'un boulodrome, importé depuis
 OpenStreetMap (licence ODbL).
