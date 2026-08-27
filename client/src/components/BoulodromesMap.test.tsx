@@ -888,3 +888,143 @@ describe('BoulodromesMap - chargement par viewport (bbox, ticket 36)', () => {
         onSpy.mockRestore()
     })
 })
+
+describe('BoulodromesMap - Fiche boulodrome', () => {
+    it('affiche la fiche (pas de popup Leaflet) avec les mêmes infos que l’ancien popup, au clic sur un marqueur', async () => {
+        vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes)
+
+        const { container } = render(<BoulodromesMap features={sampleBoulodromes} />)
+        const [marker] = container.querySelectorAll('.leaflet-marker-icon')
+        fireEvent.click(marker)
+
+        const fiche = await screen.findByRole('region', { name: 'Détails du boulodrome sélectionné' })
+        expect(fiche.textContent).toContain('TERRAIN DE PETANQUE')
+        expect(fiche.textContent).toContain('1 rue de Paris')
+        expect(fiche.textContent).toContain('75001')
+        expect(container.querySelector('.leaflet-popup')).toBeNull()
+    })
+
+    it('ferme la fiche (et vide les cafés à proximité) au clic sur le bouton "×"', async () => {
+        vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(sampleCafes)
+
+        const { container } = render(<BoulodromesMap features={sampleBoulodromes} />)
+        const [marker] = container.querySelectorAll('.leaflet-marker-icon')
+        fireEvent.click(marker)
+        await screen.findByRole('region', { name: 'Détails du boulodrome sélectionné' })
+        await waitFor(() => expect(container.querySelector('.cafe-marker')).toBeTruthy())
+
+        fireEvent.click(screen.getByRole('button', { name: 'Fermer la fiche' }))
+
+        expect(screen.queryByRole('region', { name: 'Détails du boulodrome sélectionné' })).toBeNull()
+        expect(container.querySelector('.cafe-marker')).toBeNull()
+    })
+
+    it('ferme la fiche au clic sur une zone vide de la carte', async () => {
+        vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes)
+
+        const { container } = render(<BoulodromesMap features={sampleBoulodromes} />)
+        const [marker] = container.querySelectorAll('.leaflet-marker-icon')
+        fireEvent.click(marker)
+        await screen.findByRole('region', { name: 'Détails du boulodrome sélectionné' })
+
+        const mapContainer = container.querySelector('.leaflet-container')
+        if (!mapContainer) throw new Error('conteneur de carte introuvable')
+        fireEvent.click(mapContainer)
+
+        expect(screen.queryByRole('region', { name: 'Détails du boulodrome sélectionné' })).toBeNull()
+    })
+
+    it('ferme la fiche à la touche Échap', async () => {
+        vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes)
+
+        render(<BoulodromesMap features={sampleBoulodromes} />)
+        const [marker] = document.querySelectorAll('.leaflet-marker-icon')
+        fireEvent.click(marker)
+        await screen.findByRole('region', { name: 'Détails du boulodrome sélectionné' })
+
+        fireEvent.keyDown(document, { key: 'Escape' })
+
+        expect(screen.queryByRole('region', { name: 'Détails du boulodrome sélectionné' })).toBeNull()
+    })
+
+    it("cliquer le tracé d'itinéraire (polyligne) pendant que la fiche est ouverte ne la ferme pas", async () => {
+        vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes)
+        vi.mocked(fetchRoute).mockResolvedValue(sampleRoute)
+        stubGeolocation((onSuccess) => onSuccess(fakePosition(48.85, 2.35)))
+
+        const { container } = render(<BoulodromesMap features={sampleBoulodromes} />)
+        const [marker] = container.querySelectorAll('.leaflet-marker-icon')
+        fireEvent.click(marker)
+        await screen.findByRole('region', { name: 'Détails du boulodrome sélectionné' })
+
+        fireEvent.click(await screen.findByRole('button', { name: 'Utiliser ma position' }))
+        const routeLine = await waitFor(() => {
+            const el = container.querySelector('path.leaflet-interactive')
+            if (!el) throw new Error('tracé d’itinéraire introuvable')
+            return el
+        })
+        fireEvent.click(routeLine)
+
+        expect(screen.getByRole('region', { name: 'Détails du boulodrome sélectionné' })).toBeTruthy()
+    })
+
+    it("Échap n'a pas d'effet quand le focus est dans un champ de saisie (ex. adresse de départ du RoutePanel)", async () => {
+        vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes)
+
+        const { container } = render(<BoulodromesMap features={sampleBoulodromes} />)
+        const [marker] = container.querySelectorAll('.leaflet-marker-icon')
+        fireEvent.click(marker)
+        await screen.findByRole('region', { name: 'Détails du boulodrome sélectionné' })
+
+        const addressInput = await screen.findByLabelText('Adresse de départ')
+        addressInput.focus()
+        fireEvent.keyDown(addressInput, { key: 'Escape' })
+
+        expect(screen.getByRole('region', { name: 'Détails du boulodrome sélectionné' })).toBeTruthy()
+    })
+
+    it("cliquer un marqueur café pendant que la fiche est ouverte ne la ferme pas", async () => {
+        vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(sampleCafes)
+
+        const { container } = render(<BoulodromesMap features={sampleBoulodromes} />)
+        const [marker] = container.querySelectorAll('.leaflet-marker-icon')
+        fireEvent.click(marker)
+        await screen.findByRole('region', { name: 'Détails du boulodrome sélectionné' })
+
+        const cafeMarker = await waitFor(() => {
+            const el = container.querySelector('.cafe-marker')
+            if (!el) throw new Error('marqueur café introuvable')
+            return el
+        })
+        fireEvent.click(cafeMarker)
+
+        expect(screen.getByRole('region', { name: 'Détails du boulodrome sélectionné' })).toBeTruthy()
+    })
+
+    it('sélectionner un autre boulodrome remplace le contenu de la fiche', async () => {
+        vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes)
+
+        const { container } = render(<BoulodromesMap features={sampleBoulodromes} />)
+        const markers = container.querySelectorAll('.leaflet-marker-icon')
+        fireEvent.click(markers[0])
+        await screen.findByRole('region', { name: 'Détails du boulodrome sélectionné' })
+
+        fireEvent.click(markers[1])
+
+        const fiche = await screen.findByRole('region', { name: 'Détails du boulodrome sélectionné' })
+        expect(fiche.textContent).toContain('AUTRE TERRAIN')
+        expect(fiche.textContent).not.toContain('1 rue de Paris')
+    })
+
+    it("le focus clavier reste sur le marqueur après activation (pas de vol de focus par la fiche)", async () => {
+        vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes)
+
+        const { container } = render(<BoulodromesMap features={sampleBoulodromes} />)
+        const [marker] = container.querySelectorAll('.leaflet-marker-icon')
+        ;(marker as HTMLElement).focus()
+        fireEvent.keyPress(marker, { key: 'Enter', keyCode: 13 })
+
+        await screen.findByRole('region', { name: 'Détails du boulodrome sélectionné' })
+        expect(document.activeElement).toBe(marker)
+    })
+})

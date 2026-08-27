@@ -21,3 +21,11 @@ export const FLOATING_SURFACE_CLASS = `rounded-lg border border-gray-300 shadow-
 // ici, hors scope de ce ticket) - extrait pour qu'un futur troisieme usage
 // n'ait pas a redupliquer ce litteral une fois de plus.
 export const STATUS_ERROR_TEXT_CLASS = 'text-red-700 dark:text-red-400'
+
+// Chrome pilule partagé par les badges de contenu (accès libre/payant sur la
+// Fiche boulodrome, distance sur la popup café) - déplacé de
+// BoulodromesMap.tsx (où il s'appelait `POPUP_BADGE_CLASS`) vers ce fichier
+// de tokens partagés au moment où la Fiche boulodrome (nouveau composant, cf.
+// CONTEXT.md) en a eu besoin en plus de la popup café - seule la couleur
+// varie entre usages.
+export const PILL_BADGE_CLASS = 'mt-1 inline-block rounded-full px-2 py-0.5 text-[0.85em] font-semibold'

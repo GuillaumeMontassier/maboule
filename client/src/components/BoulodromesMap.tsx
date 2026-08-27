@@ -6,20 +6,19 @@ import { MapContainer, Marker, Polyline, Popup, TileLayer, ZoomControl } from 'r
 import type { CafeAmenityType } from '../api/cafes'
 import type { Bbox, BoulodromeProperties, BoulodromesFeatureCollection } from '../api/boulodromes'
 import type { RouteFeature } from '../api/route'
+import { BoulodromeDetailsPanel } from './BoulodromeDetailsPanel'
 import { BoundsWatcher } from './BoundsWatcher'
 import { BoulodromeSearch } from './BoulodromeSearch'
+import { MapClickDeselect } from './MapClickDeselect'
 import { RoutePanel } from './RoutePanel'
 import { useBoulodromeSelection } from '../hooks/use-boulodrome-selection'
 import { toBoulodromeHistoryEntry } from '../lib/boulodrome-selection'
 import { geoJsonCoordinatesToLatLng } from '../lib/geo'
 import { computePopupAutoPanPadding } from '../lib/popup-auto-pan'
 import { distinctSiteName } from '../lib/site-name'
+import { PILL_BADGE_CLASS } from './surfaceStyles'
 
 const PARIS_CENTER: [number, number] = [48.8566, 2.3522]
-
-// Chrome pilule partage par les badges de contenu de popup (acces libre/payant,
-// distance des cafes) - seule la couleur varie entre usages.
-const POPUP_BADGE_CLASS = 'mt-1 inline-block rounded-full px-2 py-0.5 text-[0.85em] font-semibold'
 
 // Point colore a contour blanc, commun aux 4 types (pieton/cafe/bar/pub) ;
 // seule la couleur varie. Classes Tailwind completes et statiques (pas de
@@ -93,7 +92,6 @@ interface BoulodromesMapProps {
 export function BoulodromesMap({ features, onBoundsChange }: BoulodromesMapProps) {
     const {
         mapRef,
-        boulodromeMarkers,
         selectedBoulodromeId,
         nearbyCafes,
         history,
@@ -115,6 +113,14 @@ export function BoulodromesMap({ features, onBoundsChange }: BoulodromesMapProps
     // sur `computePopupAutoPanPadding`).
     const popupAutoPanPadding = computePopupAutoPanPadding(window.innerWidth)
 
+    // Contenu de la Fiche boulodrome (BoulodromeDetailsPanel) : derive de
+    // `features`, jamais d'un marqueur Leaflet (il n'y a plus de popup a
+    // rouvrir). Un boulodrome selectionne hors du bbox actuellement charge
+    // (recherche/historique, ticket 36) n'a donc pas encore de fiche - elle
+    // apparait d'elle-meme des qu'un fetch bbox ulterieur l'inclut dans
+    // `features`, meme comportement que l'ancienne popup.
+    const selectedFeature = features.features.find((feature) => feature.properties.id === selectedBoulodromeId)
+
     return (
         <>
             <BoulodromeSearch
@@ -122,11 +128,18 @@ export function BoulodromesMap({ features, onBoundsChange }: BoulodromesMapProps
                 history={history}
                 onRemoveFromHistory={removeFromHistory}
             />
+            {selectedBoulodromeId && selectedFeature && (
+                <BoulodromeDetailsPanel
+                    properties={selectedFeature.properties}
+                    onClose={() => deselectBoulodrome(selectedBoulodromeId)}
+                />
+            )}
             {selectedBoulodromeId && (
                 <RoutePanel key={selectedBoulodromeId} boulodromeId={selectedBoulodromeId} onRouteChange={setRoute} />
             )}
             <MapContainer ref={mapRef} center={PARIS_CENTER} zoom={12} zoomControl={false} className="map">
                 {onBoundsChange && <BoundsWatcher onBoundsChange={onBoundsChange} />}
+                <MapClickDeselect selectedBoulodromeId={selectedBoulodromeId} onDeselect={deselectBoulodrome} />
                 <TileLayer
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
                     url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -137,15 +150,10 @@ export function BoulodromesMap({ features, onBoundsChange }: BoulodromesMapProps
                 <ZoomControl position="bottomright" />
                 {features.features.map((feature) => {
                     const id = feature.properties.id
-                    const popupSiteName = distinctSiteName(feature.properties.name, feature.properties.siteName)
                     const historyEntry = toBoulodromeHistoryEntry(feature)
                     return (
                         <Marker
                             key={id}
-                            ref={(marker) => {
-                                if (marker) boulodromeMarkers.current.set(id, marker)
-                                else boulodromeMarkers.current.delete(id)
-                            }}
                             position={toLatLng(feature.geometry.coordinates)}
                             // Nom accessible du marqueur - sans ce prop, Leaflet retombe sur
                             // l'alt par defaut "Marker", identique pour les 64 marqueurs et
@@ -155,23 +163,18 @@ export function BoulodromesMap({ features, onBoundsChange }: BoulodromesMapProps
                             // vis-a-vis d'un `<img>` sans nom (ticket 26).
                             alt={accessibleMarkerName(feature.properties)}
                             eventHandlers={{
-                                // `selectBoulodrome` gere elle-meme la fermeture explicite de
-                                // l'ancien popup (necessaire car `autoClose` est desactive
-                                // ci-dessous sur la Popup - cf. commentaire `autoClose`).
                                 click: () => selectBoulodrome(historyEntry),
-                                // Le mixin popup de Leaflet ouvre le popup au clavier (Entree
-                                // seulement) via son propre gestionnaire interne `keypress` ->
-                                // `_openPopup` (`leaflet-src.js`, mixin Popup), completement
-                                // independant de l'evenement `click` ci-dessus : sans cet
-                                // ecouteur explicite, l'activation clavier d'un marqueur
-                                // ouvrait le popup Leaflet brut sans jamais appeler
-                                // `selectBoulodrome` - donc sans panneau Itineraire, sans
-                                // cafes a proximite et sans ajout a l'historique (ticket 13).
-                                // Espace egalement gere ici (contrairement au mixin interne
-                                // de Leaflet, qui ne reagit qu'a Entree) : le marqueur porte
-                                // `role="button"` (pose par Leaflet), et la spec WAI-ARIA
-                                // attend qu'un role=button reagisse aux deux touches.
-                                // `preventDefault` sur Espace evite le defilement de page
+                                // Le mixin popup de Leaflet ouvrait autrefois le popup au clavier
+                                // (Entree seulement) via son propre gestionnaire interne
+                                // `keypress` -> `_openPopup` (`leaflet-src.js`, mixin Popup) - la
+                                // Fiche n'etant plus une popup, cet ecouteur explicite reste
+                                // necessaire pour que l'activation clavier appelle bien
+                                // `selectBoulodrome` (panneau Itineraire, cafes a proximite,
+                                // historique, ticket 13). Espace egalement gere ici
+                                // (contrairement au mixin interne de Leaflet, qui ne reagit qu'a
+                                // Entree) : le marqueur porte `role="button"` (pose par Leaflet),
+                                // et la spec WAI-ARIA attend qu'un role=button reagisse aux deux
+                                // touches. `preventDefault` sur Espace evite le defilement de page
                                 // (comportement par defaut du navigateur sur un element
                                 // focusable non-formulaire).
                                 keypress: (event) => {
@@ -179,65 +182,9 @@ export function BoulodromesMap({ features, onBoundsChange }: BoulodromesMapProps
                                     if (key !== 'Enter' && key !== ' ') return
                                     if (key === ' ') event.originalEvent.preventDefault()
                                     selectBoulodrome(historyEntry)
-                                },
-                                popupclose: () => deselectBoulodrome(id)
+                                }
                             }}
-                        >
-                            {/*
-                Deux mecanismes Leaflet independants ferment normalement ce
-                popup des qu'on clique sur un marqueur cafe affiche par-dessus,
-                et il faut desactiver les deux :
-                - autoClose (defaut true) : ferme le popup ouvert quand un AUTRE
-                  popup s'ouvre (celui du cafe cliqué).
-                - closeOnClick (defaut = closePopupOnClick de la carte, true) :
-                  ferme le popup des qu'on clique n'importe ou ailleurs sur la
-                  carte - y compris sur un marqueur cafe, qui n'est pas
-                  distingue d'un clic dans le vide.
-                Sans ca, `popupclose` se declenche ici, vide `nearbyCafes` et
-                demonte le marqueur cafe au moment meme ou son propre popup
-                tente de s'ouvrir. La fermeture est donc geree explicitement
-                nous-memes (cf. eventHandlers.click ci-dessus) plutot que par
-                ces comportements automatiques.
-              */}
-                            <Popup
-                                autoClose={false}
-                                closeOnClick={false}
-                                autoPanPaddingTopLeft={popupAutoPanPadding.topLeft}
-                                autoPanPaddingBottomRight={popupAutoPanPadding.bottomRight}
-                            >
-                                <strong>{feature.properties.name}</strong>
-                                {popupSiteName && (
-                                    <>
-                                        <br />
-                                        {popupSiteName}
-                                    </>
-                                )}
-                                <br />
-                                {feature.properties.street}, {feature.properties.postalCode} {feature.properties.city}
-                                {(feature.properties.equipmentType || feature.properties.groundType) && (
-                                    <>
-                                        <br />
-                                        {[feature.properties.equipmentType, feature.properties.groundType]
-                                            .filter(Boolean)
-                                            .join(' · ')}
-                                    </>
-                                )}
-                                {feature.properties.freeAccess !== null && (
-                                    <>
-                                        <br />
-                                        <span
-                                            className={`${POPUP_BADGE_CLASS} ${
-                                                feature.properties.freeAccess
-                                                    ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
-                                                    : 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
-                                            }`}
-                                        >
-                                            {feature.properties.freeAccess ? 'Accès libre' : 'Accès payant / restreint'}
-                                        </span>
-                                    </>
-                                )}
-                            </Popup>
-                        </Marker>
+                        />
                     )
                 })}
                 {nearbyCafes?.features.map((cafe) => {
@@ -263,7 +210,7 @@ export function BoulodromesMap({ features, onBoundsChange }: BoulodromesMapProps
                                 <strong>{cafe.properties.name}</strong>
                                 <br />
                                 <span
-                                    className={`${POPUP_BADGE_CLASS} bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200`}
+                                    className={`${PILL_BADGE_CLASS} bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-200`}
                                 >
                                     {cafe.properties.distanceMeters} m du boulodrome
                                 </span>
@@ -282,11 +229,7 @@ export function BoulodromesMap({ features, onBoundsChange }: BoulodromesMapProps
                 {routePositions && routeStartPosition && (
                     <>
                         <Polyline positions={routePositions} />
-                        <Marker
-                            position={routeStartPosition}
-                            icon={routeStartIcon}
-                            title="Point de départ de l'itinéraire"
-                        />
+                        <Marker position={routeStartPosition} icon={routeStartIcon} title="Point de départ de l'itinéraire" />
                     </>
                 )}
             </MapContainer>

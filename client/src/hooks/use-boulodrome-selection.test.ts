@@ -30,24 +30,6 @@ const VINCENNES: BoulodromeHistoryEntry = {
     coordinates: { latitude: 48.8286, longitude: 2.4372 }
 }
 
-// Un marqueur Leaflet n'a besoin, du point de vue du hook, que des trois
-// methodes qu'il appelle reellement (`openPopup`/`closePopup`/`isPopupOpen`) -
-// ce double suffit donc a tester la logique de selection sans monter de
-// carte Leaflet reelle (cf. commentaire du hook sur les refs "retournees, pas
-// recreees").
-function fakeMarker(): L.Marker {
-    let popupOpen = false
-    return {
-        openPopup: vi.fn(() => {
-            popupOpen = true
-        }),
-        closePopup: vi.fn(() => {
-            popupOpen = false
-        }),
-        isPopupOpen: vi.fn(() => popupOpen)
-    } as unknown as L.Marker
-}
-
 function fakeMap(zoom: number): L.Map {
     return {
         getZoom: () => zoom,
@@ -101,22 +83,6 @@ describe('useBoulodromeSelection', () => {
         expect(result.current.history).toEqual([ARSENAL])
     })
 
-    it('selectionner un boulodrome ouvre son marqueur et ferme le popup du precedent', (): void => {
-        vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes)
-        const { result } = renderHook(() => useBoulodromeSelection(emptyFeatures))
-        const arsenalMarker = fakeMarker()
-        const vincennesMarker = fakeMarker()
-        result.current.boulodromeMarkers.current.set('data-es:1', arsenalMarker)
-        result.current.boulodromeMarkers.current.set('data-es:2', vincennesMarker)
-
-        act(() => result.current.selectBoulodrome(ARSENAL))
-        expect(arsenalMarker.openPopup).toHaveBeenCalledTimes(1)
-
-        act(() => result.current.selectBoulodrome(VINCENNES))
-        expect(arsenalMarker.closePopup).toHaveBeenCalledTimes(1)
-        expect(vincennesMarker.openPopup).toHaveBeenCalledTimes(1)
-    })
-
     it('selectionner un boulodrome recentre la carte (flyTo) sur ses coordonnees', (): void => {
         vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes)
         const { result } = renderHook(() => useBoulodromeSelection(emptyFeatures))
@@ -143,7 +109,7 @@ describe('useBoulodromeSelection', () => {
         expect(zoom).toBe(17)
     })
 
-    it("deselectionner un id qui n'est plus le boulodrome selectionne n'ecrase pas la selection courante", (): void => {
+    it('fermer la fiche (deselection) avec un autre id que celui actuellement selectionne ne change rien', (): void => {
         vi.mocked(fetchCafesNearBoulodrome).mockResolvedValue(emptyCafes)
         const { result } = renderHook(() => useBoulodromeSelection(emptyFeatures))
 

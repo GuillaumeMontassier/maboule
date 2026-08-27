@@ -8,7 +8,6 @@ import { useBoulodromeHistory, type BoulodromeHistoryEntry } from './use-boulodr
 
 export interface BoulodromeSelection {
     mapRef: RefObject<L.Map | null>
-    boulodromeMarkers: RefObject<Map<string, L.Marker>>
     selectedBoulodromeId: string | null
     nearbyCafes: CafesFeatureCollection | null
     history: BoulodromeHistoryEntry[]
@@ -19,16 +18,15 @@ export interface BoulodromeSelection {
 
 // Selection d'un boulodrome sur la carte : id selectionne, cafes a proximite
 // charges pour ce boulodrome, historique de recherche alimente, recentrage de
-// la carte. Les refs Leaflet necessaires (instance de carte, marqueurs de
-// boulodromes) sont creees ici et retournees pour que le composant les passe
-// telles quelles aux props `ref` de `MapContainer`/`Marker` - le hook ne
-// recree jamais d'instance `L.Map`/`L.Marker` lui-meme, il se contente
-// d'appeler leurs methodes (`flyTo`, `openPopup`, `closePopup`) une fois
-// peuplees par le rendu Leaflet.
+// la carte (Fiche boulodrome et RoutePanel affiches par le composant
+// appelant, pilotes uniquement par `selectedBoulodromeId`). La ref Leaflet de
+// la carte est creee ici et retournee pour que le composant la passe telle
+// quelle a la prop `ref` de `MapContainer` - le hook ne recree jamais
+// d'instance `L.Map` lui-meme, il se contente d'appeler `flyTo` une fois
+// peuplee par le rendu Leaflet.
 export function useBoulodromeSelection(features: BoulodromesFeatureCollection): BoulodromeSelection {
     const [selectedBoulodromeId, setSelectedBoulodromeId] = useState<string | null>(null)
     const [nearbyCafes, setNearbyCafes] = useState<CafesFeatureCollection | null>(null)
-    const boulodromeMarkers = useRef(new Map<string, L.Marker>())
     const mapRef = useRef<L.Map | null>(null)
     const { history, addToHistory, removeFromHistory } = useBoulodromeHistory()
 
@@ -62,42 +60,24 @@ export function useBoulodromeSelection(features: BoulodromesFeatureCollection): 
         }
     }, [selectedBoulodromeId])
 
-    // Rouvre le popup du boulodrome selectionne des que son marqueur devient
-    // disponible - necessaire quand la selection vient d'un resultat de
-    // recherche/historique hors du bbox actuel (ticket 36) : au moment de la
-    // selection, `selectBoulodrome` ci-dessous ne trouve encore aucun
-    // marqueur (le `flyTo` qu'elle declenche n'a pas encore fait arriver ce
-    // boulodrome dans le bbox charge). Cet effet reessaie a chaque fois que
-    // `features` change (nouveau fetch bbox), jusqu'a ce que le marqueur
-    // existe enfin.
-    useEffect(() => {
-        if (!selectedBoulodromeId) return
-        const marker = boulodromeMarkers.current.get(selectedBoulodromeId)
-        if (marker && !marker.isPopupOpen()) marker.openPopup()
-    }, [selectedBoulodromeId, features])
-
-    // Selectionne un boulodrome et ouvre son popup - factorise pour etre
-    // declenche aussi bien par un clic sur son marqueur que par le choix d'un
-    // resultat de recherche ou d'une entree d'historique (meme etat, meme
-    // popup dans les trois cas). Recoit l'entree complete (pas seulement un
-    // id) : la recherche interroge l'API sans tenir compte du bbox actuel, et
-    // l'historique reference typiquement un boulodrome hors du viewport - un
-    // tel resultat peut donc referencer un boulodrome absent de `features`
-    // (bbox-scope) et donc sans marqueur sur la carte (ticket 36). Le
-    // recentrage (`flyTo`) et l'ajout a l'historique utilisent alors les
-    // coordonnees portees par l'entree elle-meme plutot que de dependre d'un
-    // marqueur present ; l'ouverture du popup elle-meme reste conditionnee a
-    // l'existence du marqueur (rien a ouvrir sinon), mais l'effet ci-dessus
-    // reessaie des que le marqueur finit par apparaitre.
+    // Selectionne un boulodrome - factorise pour etre declenche aussi bien par
+    // un clic sur son marqueur que par le choix d'un resultat de recherche ou
+    // d'une entree d'historique (meme etat dans les trois cas). Recoit
+    // l'entree complete (pas seulement un id) : la recherche interroge l'API
+    // sans tenir compte du bbox actuel, et l'historique reference typiquement
+    // un boulodrome hors du viewport - un tel resultat peut donc referencer un
+    // boulodrome absent de `features` (bbox-scope, ticket 36). Le recentrage
+    // (`flyTo`) et l'ajout a l'historique utilisent alors les coordonnees
+    // portees par l'entree elle-meme plutot que de dependre d'un marqueur
+    // present. La Fiche boulodrome, elle, reste conditionnee a l'existence du
+    // boulodrome dans `features` (rien a afficher sinon, cf. composant
+    // appelant) - elle apparait d'elle-meme des qu'un fetch bbox ulterieur
+    // fait apparaitre ce boulodrome, aucun effet dedie necessaire ici (a la
+    // difference de l'ancien mecanisme de popup Leaflet, qui devait reessayer
+    // d'ouvrir un popup une fois le marqueur disponible).
     const selectBoulodrome = useCallback(
         (entry: BoulodromeHistoryEntry) => {
-            const marker = boulodromeMarkers.current.get(entry.id)
-            if (selectedBoulodromeId && selectedBoulodromeId !== entry.id) {
-                boulodromeMarkers.current.get(selectedBoulodromeId)?.closePopup()
-            }
             setSelectedBoulodromeId(entry.id)
-            marker?.openPopup()
-
             addToHistory(entry)
 
             // Recentrage anime plutot qu'un saut instantane. Appeler `flyTo` alors
@@ -111,22 +91,54 @@ export function useBoulodromeSelection(features: BoulodromesFeatureCollection): 
                 map.flyTo(L.latLng(entry.coordinates.latitude, entry.coordinates.longitude), targetZoom)
             }
         },
-        [addToHistory, selectedBoulodromeId]
+        [addToHistory]
     )
 
-    // Ferme la selection courante - utilise par l'evenement `popupclose` du
-    // marqueur boulodrome. L'id est verifie avant de vider la selection : un
-    // `popupclose` peut arriver pour un marqueur qui n'est deja plus celui
-    // selectionne (ex. fermeture explicite de l'ancien popup dans
-    // `selectBoulodrome` ci-dessus), auquel cas il ne doit pas ecraser la
+    // Ferme la selection courante (Fiche boulodrome, RoutePanel, cafes a
+    // proximite) - utilise par les trois chemins de fermeture de la Fiche
+    // (bouton "x", clic sur une zone vide de la carte, touche Echap). L'id est
+    // verifie avant de vider la selection : un appel peut concerner un
+    // boulodrome qui n'est deja plus celui selectionne (ex. une nouvelle
+    // selection a eu lieu entre-temps), auquel cas il ne doit pas ecraser la
     // nouvelle selection.
     const deselectBoulodrome = useCallback((id: string) => {
         setSelectedBoulodromeId((current) => (current === id ? null : current))
     }, [])
 
+    // Lu par l'ecouteur Echap ci-dessous - ref (pas une dependance d'effet)
+    // pour ne pas detacher/rattacher l'ecouteur `keydown` a chaque changement
+    // de selection, meme principe que la ref de `MapClickDeselect` pour
+    // `onDeselect` (trouve en revue de code : l'effet se recreait sans
+    // necessite reelle a chaque selection/deselection).
+    const selectedBoulodromeIdRef = useRef(selectedBoulodromeId)
+    useEffect(() => {
+        selectedBoulodromeIdRef.current = selectedBoulodromeId
+    }, [selectedBoulodromeId])
+
+    // Ferme la Fiche a la touche Echap - ecouteur document (pas seulement sur
+    // la fiche/le marqueur) pour rester coherent avec la fermeture au clic
+    // sur une zone vide de la carte, utilisable quel que soit l'element
+    // actuellement focalise. Exception : un champ de saisie focalise (ex.
+    // adresse de depart du RoutePanel, ou sa liste de candidats en cours de
+    // choix) ignore Echap ici - Echap y signifie "annuler la saisie en
+    // cours", pas "fermer toute la fiche et perdre la recherche d'itineraire
+    // en amont" (trouve en revue de code).
+    useEffect(() => {
+        function handleKeyDown(event: KeyboardEvent) {
+            if (event.key !== 'Escape') return
+            const currentId = selectedBoulodromeIdRef.current
+            if (!currentId) return
+            const activeTag = document.activeElement?.tagName
+            if (activeTag === 'INPUT' || activeTag === 'TEXTAREA') return
+            deselectBoulodrome(currentId)
+        }
+
+        document.addEventListener('keydown', handleKeyDown)
+        return () => document.removeEventListener('keydown', handleKeyDown)
+    }, [deselectBoulodrome])
+
     return {
         mapRef,
-        boulodromeMarkers,
         selectedBoulodromeId,
         nearbyCafes,
         history,
