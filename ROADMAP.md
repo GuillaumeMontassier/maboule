@@ -344,8 +344,13 @@ triage, cf. `.scratch/phase-8-standards/spec.md`).
       nouvelle dépendance pour l'instant)
 - [ ] Ticket 04 — Extraire la logique de sélection/chargement des cafés de
       `BoulodromesMap.tsx` dans un hook custom
-- [ ] Ticket 05 — Trancher et appliquer le traitement de l'état de
+- [x] Ticket 05 — Trancher et appliquer le traitement de l'état de
       chargement/erreur des cafés à proximité (silencieux assumé vs. exposé)
+      — décidé avec l'auteur du projet : silencieux-échec conservé comme
+      exception assumée à la règle des 3 états (la popup boulodrome ne doit
+      jamais dépendre de la disponibilité des cafés, information secondaire) ;
+      commentaire renforcé dans `client/src/hooks/use-boulodrome-selection.ts`
+      pour l'expliciter, aucun changement de comportement
 
 Ajout hors périmètre de l'audit standards ci-dessus, mais logé ici comme
 prochain chantier d'environnement de dev (cf.

@@ -4,14 +4,19 @@
 
 **Blocked by:** aucun
 
-**Status:** needs-triage
+**Status:** done
 
-**Origine :** `.scratch/phase-8-standards/spec.md`. `BoulodromesMap.tsx:96-100` : `fetchCafesNearBoulodrome(...).catch(() => { if (!cancelled) setNearbyCafes(null); })`, avec le commentaire "Best-effort : un probleme sur les cafes ne doit pas empecher d'afficher la popup du boulodrome lui-meme." C'est un écart réel par rapport à la règle des 3 états (pas d'état "erreur" distinct de "pas encore chargé"/"vide"), mais le commentaire suggère un choix délibéré au moment de l'écriture (Phase 4) plutôt qu'un oubli — ce ticket tranche plutôt que d'imposer un comportement sans vérifier l'intention d'origine.
+**Origine :** `.scratch/phase-8-standards/spec.md`. À l'origine (Phase 4) dans `BoulodromesMap.tsx:96-100` : `fetchCafesNearBoulodrome(...).catch(() => { if (!cancelled) setNearbyCafes(null); })`, avec le commentaire "Best-effort : un probleme sur les cafes ne doit pas empecher d'afficher la popup du boulodrome lui-meme." Cette logique a depuis été déplacée dans `client/src/hooks/use-boulodrome-selection.ts` (ticket 04). C'est un écart réel par rapport à la règle des 3 états (pas d'état "erreur" distinct de "pas encore chargé"/"vide"), mais le commentaire suggère un choix délibéré au moment de l'écriture plutôt qu'un oubli — ce ticket tranche plutôt que d'imposer un comportement sans vérifier l'intention d'origine.
 
-- [ ] Décision prise et notée dans ce ticket (`## Answer` ou équivalent) : soit (a) le silencieux-échec reste volontaire — la popup boulodrome ne doit jamais dépendre de la disponibilité des cafés — auquel cas le commentaire existant est renforcé pour expliciter que c'est une exception assumée à la règle des 3 états, avec la raison ; soit (b) un état "erreur" minimal et discret est ajouté (ex. une ligne de texte dans la popup, sans bloquer son affichage)
-- [ ] Si (b) est choisi : l'état ajouté n'empêche à aucun moment l'affichage de la popup du boulodrome elle-même (contrainte d'origine préservée)
-- [ ] Tests adaptés en conséquence si le comportement change (`BoulodromesMap.test.tsx`)
-- [ ] Vérifié en navigateur réel si (b) : simuler un échec de `fetchCafesNearBoulodrome`, confirmer l'affichage du nouvel état sans régression sur la popup
+## Answer
+
+Option (a) retenue, tranchée avec l'auteur du projet : le silencieux-échec reste volontaire. La popup boulodrome ne doit jamais dépendre de la disponibilité des cafés à proximité, qui ne sont qu'une information secondaire affichée dessus — un souci réseau/serveur côté cafés ne doit dégrader ni bloquer la fonctionnalité principale (afficher le boulodrome). C'est donc une exception assumée à la règle des 3 états, pas un oubli.
+
+- [x] Décision prise et notée ci-dessus (option a)
+- [x] Commentaire existant renforcé dans `use-boulodrome-selection.ts` pour expliciter que c'est une exception assumée à la règle des 3 états, avec la raison et un renvoi vers ce ticket
+- [ ] ~~Si (b) est choisi : l'état ajouté n'empêche à aucun moment l'affichage de la popup du boulodrome elle-même~~ — non applicable, option (a) retenue
+- [ ] ~~Tests adaptés en conséquence si le comportement change~~ — non applicable, aucun changement de comportement (commentaire uniquement)
+- [ ] ~~Vérifié en navigateur réel si (b)~~ — non applicable
 
 **Out of scope :**
 - Retry automatique ou mécanisme de nouvelle tentative — hors périmètre de cette décision

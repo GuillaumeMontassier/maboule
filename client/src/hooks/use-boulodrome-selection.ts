@@ -45,8 +45,13 @@ export function useBoulodromeSelection(features: BoulodromesFeatureCollection): 
                 const data = await fetchCafesNearBoulodrome(boulodromeId)
                 if (!cancelled) setNearbyCafes(data)
             } catch {
-                // Best-effort : un probleme sur les cafes ne doit pas empecher
-                // d'afficher la popup du boulodrome lui-meme.
+                // Exception assumee a la regle des 3 etats (chargement/erreur/succes) :
+                // la popup boulodrome ne doit jamais dependre de la disponibilite des
+                // cafes, qui ne sont qu'une information secondaire affichee dessus.
+                // Une erreur retombe donc silencieusement sur `null` (etat "aucun cafe"),
+                // sans etat "erreur" distinct expose a l'utilisateur - decision tranchee
+                // au ticket 05 (.scratch/phase-8-standards/issues/05-etat-erreur-cafes-proximite.md)
+                // plutot que laissee comme un oubli.
                 if (!cancelled) setNearbyCafes(null)
             }
         }
