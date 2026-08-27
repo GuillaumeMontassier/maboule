@@ -1,0 +1,16 @@
+services:
+  app:
+    image: mcr.microsoft.com/devcontainers/javascript-node:22
+    volumes:
+      - ..:/workspaces/maboule:cached
+    working_dir: /workspaces/maboule
+    command: sleep infinity
+    environment:
+      # localhost ne designe pas le service db depuis ce conteneur (contrairement
+      # au dev natif hors conteneur) - remplace la valeur de server/.env, jamais
+      # ecrasee par dotenv-cli (les variables deja definies dans l'environnement
+      # ont priorite sur celles d'un fichier .env charge ensuite).
+      DATABASE_URL: postgres://maboule:maboule@db:5432/maboule
+    depends_on:
+      db:
+        condition: service_healthy

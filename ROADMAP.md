@@ -356,10 +356,19 @@ Ajout hors périmètre de l'audit standards ci-dessus, mais logé ici comme
 prochain chantier d'environnement de dev (cf.
 `docs/adr/0003-vscode-dev-containers-for-dev-environment.md`) :
 
-- [ ] Ticket 06 — Scaffolder `.devcontainer/devcontainer.json` (VS Code Dev
+- [x] Ticket 06 — Scaffolder `.devcontainer/devcontainer.json` (VS Code Dev
       Containers) pour le workspace `client`/`server`, référençant le
       `docker-compose.yml` existant (service `db`) via `dockerComposeFile`
-      plutôt que de le dupliquer
+      plutôt que de le dupliquer — `.devcontainer/docker-compose.yml` ajoute
+      un service `app` (image `mcr.microsoft.com/devcontainers/javascript-node:22`,
+      même version Node que le `Dockerfile` de prod), `DATABASE_URL` réécrit
+      pour viser le service `db` plutôt que `localhost` (sans danger,
+      `dotenv-cli` ne réécrit jamais une variable déjà présente dans
+      l'environnement — priorité sur `server/.env`) ; `postCreateCommand: npm
+      install` à l'ouverture ; note ajoutée dans `README.md` ; vérification
+      manuelle (ouverture réelle dans VS Code) non faite dans cette session,
+      à faire par l'auteur du projet — voir
+      `.scratch/phase-8-standards/issues/06-devcontainer-scaffold.md`
 
 ## Phase 8 — Contributions utilisateurs
 

@@ -39,6 +39,14 @@ Le projet est en cours de développement, une version MVP sera disponible procha
 
 Prérequis : Node.js, Docker.
 
+Alternative : le repo fournit un environnement [VS Code Dev
+Containers](https://containers.dev/) (`.devcontainer/`) qui embarque Node
+et les outils du workspace `client`/`server` dans un conteneur, PostgreSQL/
+PostGIS restant un service à part sur le même `docker-compose.yml`. Ouvrir
+le dossier dans VS Code puis "Reopen in Container" ; `npm install` est
+lancé automatiquement à l'ouverture — reprendre ensuite à partir de l'étape
+3 ci-dessous.
+
 1. **Base de données** (PostgreSQL + PostGIS via Docker)
 
    ```bash
