@@ -4,11 +4,9 @@
 > (*boulodromes*) in Paris on an interactive map, built on French government
 > open data. Stack: React + TypeScript on the frontend, Node.js/Express on
 > the backend, PostgreSQL + PostGIS for geospatial storage. Also used as a
-> learning project (author is experienced with Vue.js/Python/MongoDB, new to
-> React and PostGIS) and as an opportunity to learn to work with
-> [Claude Code](https://claude.com/claude-code) as an AI pair-programming
-> tool. The project is currently in an early setup phase. Documentation
-> below is in French; ask if an English version would help.
+> learning project and as an opportunity to work with Claude Code in a more
+> autonomous way. The project is currently in an early setup phase. Documentation
+> below is in French.
 
 ---
 
@@ -16,11 +14,9 @@
 
 Carte interactive des boulodromes de Paris, construite à partir de données
 publiques. Le projet a un triple objectif : produire un outil réellement
-utilisable, servir de terrain d'apprentissage sur des technos moins
-familières à l'auteur — React côté frontend, PostgreSQL/PostGIS côté
-données géospatiales —, et explorer l'utilisation de
-[Claude Code](https://claude.com/claude-code) comme outil de développement
-assisté par IA.
+utilisable, servir de terrain d'apprentissage sur des technos (React côté 
+frontend, PostgreSQL/PostGIS côté données géospatiales) et explorer l'utilisation 
+de Claude Code comme outil de développement assisté par IA.
 
 ## Stack technique
 
